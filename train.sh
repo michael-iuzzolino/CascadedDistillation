@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATASET_ROOT='/hdd/mliuzzolino/datasets'  # Specify location of datasets
-EXPERIMENT_ROOT='/hdd/mliuzzolino/debug_delete_me'  # Specify experiment root
+EXPERIMENT_ROOT='/hdd/mliuzzolino/cascaded_nets'  # Specify experiment root
 SPLIT_IDXS_ROOT='/hdd/mliuzzolino'  # Specify root of dataset split_idxs
 
 MODEL='resnet18'  # resnet18, resnet34, resnet50, densenet_cifar
@@ -13,7 +13,7 @@ TRAIN_MODE='cascaded'  # baseline, cascaded
 CASCADED_SCHEME='scheme_2'  # scheme_1, scheme_2
 MULTIPLE_FCS=false
 
-LAMBDA_VALS=(0.0)  # 0.5 0.8 1.0)
+LAMBDA_VALS=(0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
@@ -28,7 +28,7 @@ NESTEROV=true
 
 # General / Dataset / Train params
 DEVICE=0
-RANDOM_SEEDS=(42) # 542 1042)
+RANDOM_SEEDS=(42)  # To sweep, set as list. E.g., RANDOM_SEEDS=(42 542 1042)
 EPOCHS=2  # 120
 BATCH_SIZE=128
 NUM_WORKERS=4
