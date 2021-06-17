@@ -171,7 +171,7 @@ def setup_output_dir(args, save_args_to_root=True):
     out_basename += f",multiple_fcs"
     
   if args.tau_weighted_loss:
-    out_basename += ",tau_weightd"
+    out_basename += ",tau_weighted"
     
   save_root = os.path.join(args.experiment_root,
                            args.experiment_name,
@@ -211,7 +211,7 @@ def setup_dataset(args):
   return data_handler, loaders
 
 
-def setup_model(num_classes, args):
+def setup_model(num_classes, device, args):
   # Model
   model_dict = {
       "seed": args.random_seed,
@@ -245,7 +245,7 @@ def setup_model(num_classes, args):
   net = model_init_op.__dict__[args.model_key](**model_dict).to(device)
   print("Model instantiated.")
   
-  return net
+  return net, model_dict
 
 
 def main(args):
@@ -264,7 +264,7 @@ def main(args):
   data_handler, loaders = setup_dataset(args)
   
   # Setup model
-  net = setup_model(data_handler.num_classes, args)
+  net, model_dict = setup_model(data_handler.num_classes, device, args)
   
   # Compute inference costs if ic_only / SDN
   if args.train_mode in ["ic_only", "sdn"]:
@@ -323,7 +323,7 @@ def main(args):
       weight_decay = args.weight_decay
       lr = args.learning_rate
     else:
-      tau_scheduling_active = False # True
+      tau_scheduling_active = False
       n_epochs = 50
       lr_schedule_milestones = [15, 30, 45]
       weight_decay = 0.0

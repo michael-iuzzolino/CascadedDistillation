@@ -6,9 +6,10 @@ This repo provides code from the Improving Anytime Prediction with Parallel Casc
 
 ---
 
-# Requirements
-  * Python 3
-  * PyTorch (>= 1.0)
+# Environment Setup
+Create the environment with Conda: `conda env create -f conda_env.yml`
+
+Then activate environment: `conda activate cascaded_nets`
 
 ---
 

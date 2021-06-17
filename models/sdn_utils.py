@@ -25,6 +25,7 @@ class IC_tau_handler:
       tau_val = self._tau_targets[tau_i]
     return tau_val
   
+  
 def compute_inference_costs(data_handler, model_dict, args, verbose=False):
   # Model init op
   if args.model_key.startswith('resnet'):

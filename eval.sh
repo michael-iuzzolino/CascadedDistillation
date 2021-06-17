@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATASET_ROOT='/hdd/mliuzzolino/datasets'  # Specify location of datasets
-EXPERIMENT_ROOT='/hdd/mliuzzolino/cascaded_nets'  # Specify experiment root
+EXPERIMENT_ROOT='/hdd/mliuzzolino/debug_delete_me'  # Specify experiment root
 SPLIT_IDXS_ROOT='/hdd/mliuzzolino'  # Specify root of dataset split_idxs
 
 
@@ -10,7 +10,6 @@ MODEL='resnet18'  # resnet18, resnet34, resnet50, densenet_cifar
 DATASET_NAME='CIFAR100'  # CIFAR10, CIFAR100, TinyImageNet
 EXPERIMENT_NAME="${MODEL}/${DATASET_NAME}"
 
-TAU_WEIGHTED_LOSS=true
 TRAIN_MODE='cascaded'  # baseline, cascaded_seq, cascaded
 CASCADED_SCHEME='scheme_2'  # used for train_mode=cascaded_seq
 DATASET_KEY='test'  # used for train_mode=cascaded_seq
@@ -42,7 +41,6 @@ cmd+=( --tdl_alpha $TDL_ALPHA )
 cmd+=( --noise_var $NOISE_VAR )
 cmd+=( --n_timesteps $N_TIMESTEPS )
 
-${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
 ${KEEP_LOGITS} && cmd+=( --keep_logits )
 ${DEBUG} && cmd+=( --debug ) && echo 'DEBUG MODE ENABLED'
 ${FORCE_OVERWRITE} && cmd+=( --force_overwrite ) && echo 'FORCE OVERWRITE'

@@ -1,10 +1,11 @@
+"""Main eval script for Cascaded Nets."""
 import argparse
 import collections
 import glob
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import json
 import pandas as pd
 import seaborn as sns
 import sys
@@ -87,8 +88,6 @@ def setup_args():
   parser.add_argument("--target_IC_inference_costs", nargs="+", type=float, 
                       default=[0.15, 0.30, 0.45, 0.60, 0.75, 0.90],
                       help="target_IC_inference_costs")
-  parser.add_argument('--tau_weighted_loss', action='store_true', default=False,
-                      help='Use tau weights on IC losses')
   
   
   # Optimizer

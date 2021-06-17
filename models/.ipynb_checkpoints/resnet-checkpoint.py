@@ -101,7 +101,6 @@ class ResNet(nn.Module):
 
   def _setup_bn_op(self, **kwargs):
     if self._cascaded and self._time_bn:
-      print("Temporal batch norm.")
       self._norm_layer = custom_ops.BatchNorm2d
 
       # Setup batchnorm opts
@@ -109,7 +108,6 @@ class ResNet(nn.Module):
       self.bn_opts['n_timesteps'] = self.timesteps
       norm_layer_op = functools.partial(self._norm_layer, self.bn_opts)
     else:
-      print("Standard batch norm.")
       self._norm_layer = nn.BatchNorm2d
       norm_layer_op = self._norm_layer
 
