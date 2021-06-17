@@ -5,7 +5,6 @@ EXPERIMENT_ROOT='/hdd/mliuzzolino/cascaded_nets'  # Specify experiment root
 SPLIT_IDXS_ROOT='/hdd/mliuzzolino'  # Specify root of dataset split_idxs
 
 
-
 # Experiment name to evaluate
 MODEL='resnet18'  # resnet18, resnet34, resnet50, densenet_cifar
 DATASET_NAME='CIFAR100'  # CIFAR10, CIFAR100, TinyImageNet
