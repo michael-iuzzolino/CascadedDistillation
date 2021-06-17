@@ -148,7 +148,6 @@ def get_baseline_ckpt_path(save_root, args):
   return final_ckpt_path
 
 
-
 def setup_output_dir(args, save_args_to_root=True):
   if args.train_mode in ["baseline", "cascaded"]:
     out_basename = (f"td({args.lambda_val}),{args.cascaded_scheme}" 
@@ -344,12 +343,12 @@ def condition_model(save_root, args):
       net.turn_off_IC()
   
   returns = {
-    "optimizer_dict": optimizer_dict,
-    "optimizer_init_op": optimizer_init_op,
-    "lr_schedule_milestones": lr_schedule_milestones,
-    "lr_schedule_gamma": lr_schedule_gamma,
-    "tau_epoch_asymptote": tau_epoch_asymptote,
-    "tau_scheduling_active": tau_scheduling_active,
+      "optimizer_dict": optimizer_dict,
+      "optimizer_init_op": optimizer_init_op,
+      "lr_schedule_milestones": lr_schedule_milestones,
+      "lr_schedule_gamma": lr_schedule_gamma,
+      "tau_epoch_asymptote": tau_epoch_asymptote,
+      "tau_scheduling_active": tau_scheduling_active,
   }
   return returns
 
