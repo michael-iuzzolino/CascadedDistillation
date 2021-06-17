@@ -64,8 +64,8 @@ class ExponentiallyWeightedSmoothingKernel(nn.Module):
 
 def setup_tdl_kernel(tdl_mode, kwargs):
   """Temporal kernel interface."""
-  if tdl_mode == 'OSD':
+  if tdl_mode == "OSD":
     tdline = OneStepDelayKernel()
-  elif tdl_mode == 'EWS':
-    tdline = ExponentiallyWeightedSmoothingKernel(kwargs['tdl_alpha'])
+  elif tdl_mode == "EWS":
+    tdline = ExponentiallyWeightedSmoothingKernel(kwargs["tdl_alpha"])
   return tdline

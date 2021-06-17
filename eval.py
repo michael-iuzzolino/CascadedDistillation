@@ -31,7 +31,7 @@ def setup_args():
   
   # Paths
   parser.add_argument("--experiment_root", type=str, 
-                      default='experiments',
+                      default="experiments",
                       help="Local output dir")
   parser.add_argument("--experiment_name", type=str, 
                       required=True,
@@ -44,32 +44,32 @@ def setup_args():
                       help="Dataset name: CIFAR10, CIFAR100, TinyImageNet")
   parser.add_argument("--dataset_key", type=str, required=True,
                       help="Dataset to eval: train, test, val")
-  parser.add_argument("--split_idxs_root", type=str, default='split_idxs',
+  parser.add_argument("--split_idxs_root", type=str, default="split_idxs",
                       help="Split idxs root")
   parser.add_argument("--val_split", type=float, default=0.1,
                       help="Validation set split: 0.1 default")
   parser.add_argument("--augmentation_noise_type", type=str, 
-                      default='occlusion',
+                      default="occlusion",
                       help="Augmentation noise type: occlusion")
   parser.add_argument("--batch_size", type=int, default=128,
                       help="batch_size")
   parser.add_argument("--num_workers", type=int, default=2,
                       help="num_workers")
-  parser.add_argument('--drop_last', action='store_true', default=False,
-                      help='Drop last batch remainder')
+  parser.add_argument("--drop_last", action="store_true", default=False,
+                      help="Drop last batch remainder")
   
   # Model
-  parser.add_argument("--model_key", type=str, default='resnet18',
+  parser.add_argument("--model_key", type=str, default="resnet18",
                       help="Model: resnet18, resnet34, ..., densenet_cifar")
   parser.add_argument("--train_mode", type=str, 
-                      default='baseline',
+                      default="baseline",
                       help="Train mode: baseline, ic_only, sdn")
-  parser.add_argument('--bn_time_affine', action='store_true', default=False,
-                      help='Use temporal affine transforms in BatchNorm')
-  parser.add_argument('--bn_time_stats', action='store_true', default=False,
-                      help='Use temporal stats in BatchNorm')
+  parser.add_argument("--bn_time_affine", action="store_true", default=False,
+                      help="Use temporal affine transforms in BatchNorm")
+  parser.add_argument("--bn_time_stats", action="store_true", default=False,
+                      help="Use temporal stats in BatchNorm")
   parser.add_argument("--tdl_mode", type=str, 
-                      default='OSD',
+                      default="OSD",
                       help="TDL mode: OSD, EWS, noise")
   parser.add_argument("--tdl_alpha", type=float, default=0.0,
                       help="TDL alpha for EWS temporal kernel")
@@ -79,9 +79,9 @@ def setup_args():
                       help="Number of timesteps")
   parser.add_argument("--lambda_val", type=float, default=1.0,
                       help="TD lambda value")
-  parser.add_argument('--cascaded', action='store_true', default=False,
-                      help='Cascaded net')
-  parser.add_argument("--cascaded_scheme", type=str, default='scheme_2',
+  parser.add_argument("--cascaded", action="store_true", default=False,
+                      help="Cascaded net")
+  parser.add_argument("--cascaded_scheme", type=str, default="scheme_2",
                       help="cascaded_scheme: scheme_1, scheme_2")
   parser.add_argument("--init_tau", type=float, default=0.01,
                       help="Initial tau valu")
@@ -97,10 +97,10 @@ def setup_args():
                       help="momentum")
   parser.add_argument("--weight_decay", type=float, default=0.0005,
                       help="weight_decay")
-  parser.add_argument('--nesterov', action='store_true', default=False,
-                      help='Nesterov for SGD')
-  parser.add_argument('--normalize_loss', action='store_true', default=False,
-                      help='Normalize temporal loss')
+  parser.add_argument("--nesterov", action="store_true", default=False,
+                      help="Nesterov for SGD")
+  parser.add_argument("--normalize_loss", action="store_true", default=False,
+                      help="Normalize temporal loss")
   
   # LR scheduler
   parser.add_argument("--lr_milestones", nargs="+", type=float, 
@@ -110,8 +110,8 @@ def setup_args():
                       help="lr_schedule_gamma")
   
   # Other
-  parser.add_argument('--use_cpu', action='store_true', default=False,
-                      help='Use cpu')
+  parser.add_argument("--use_cpu", action="store_true", default=False,
+                      help="Use cpu")
   parser.add_argument("--device", type=int, default=0,
                       help="GPU device num")
   parser.add_argument("--n_epochs", type=int, default=150,
@@ -120,16 +120,16 @@ def setup_args():
                       help="eval_freq")
   parser.add_argument("--save_freq", type=int, default=5,
                       help="save_freq")
-  parser.add_argument('--keep_logits', action='store_true', default=False,
-                      help='Keep logits')
-  parser.add_argument('--debug', action='store_true', default=False,
-                      help='Debug mode')
-  parser.add_argument('--force_overwrite', action='store_true', default=False,
-                      help='Force overwrite')
+  parser.add_argument("--keep_logits", action="store_true", default=False,
+                      help="Keep logits")
+  parser.add_argument("--debug", action="store_true", default=False,
+                      help="Debug mode")
+  parser.add_argument("--force_overwrite", action="store_true", default=False,
+                      help="Force overwrite")
   
   args = parser.parse_args()
   
-  if args.tdl_mode == 'OSD':
+  if args.tdl_mode == "OSD":
     args.n_timesteps = None
     
   return args
@@ -138,11 +138,11 @@ def setup_args():
 def plot_training_curves(train_metrics, figs_root, show=False):
   fig, axes = plt.subplots(1,2,figsize=(12,4))
   for dataset_key, dataset_vals in train_metrics.items():
-    if dataset_key == 'test':
+    if dataset_key == "test":
       continue
     for i, (metric_key, metric_vals) in enumerate(dataset_vals.items()):
       epochs = [ele[0] for ele in metric_vals]
-      if os.path.basename(os.path.dirname(figs_root)).startswith('std'):
+      if os.path.basename(os.path.dirname(figs_root)).startswith("std"):
         vals = [np.mean(ele[1]) for ele in metric_vals]
       else:
         try:
@@ -153,12 +153,12 @@ def plot_training_curves(train_metrics, figs_root, show=False):
         
       axes[i].plot(epochs, vals, label=dataset_key)
       axes[i].set_title(metric_key)
-      axes[i].set_xlabel('Epochs')
+      axes[i].set_xlabel("Epochs")
       axes[i].set_ylabel(metric_key)
       axes[i].legend()
-  fig_savepath = os.path.join(figs_root, 'training_curves.png')
+  fig_savepath = os.path.join(figs_root, "training_curves.png")
   plt.tight_layout()
-  print(f'Saving figure to {fig_savepath}')
+  print(f"Saving figure to {fig_savepath}")
   plt.savefig(fig_savepath)
   
   if not show:
@@ -209,17 +209,17 @@ def main(args):
   # Set experiment root
   exp_root = os.path.join(args.experiment_root,
                           args.experiment_name,
-                          'experiments')
+                          "experiments")
 
   # Find exp paths
-  exp_paths = glob.glob(f'{exp_root}/*')
+  exp_paths = glob.glob(f"{exp_root}/*")
   
-  if args.train_mode == 'baseline':
-    train_mode_lookup = 'std'
-  elif args.train_mode == 'cascaded':
-    train_mode_lookup = 'td('
-  elif args.train_mode == 'cascaded_seq':
-    train_mode_lookup = 'std'
+  if args.train_mode == "baseline":
+    train_mode_lookup = "std"
+  elif args.train_mode == "cascaded":
+    train_mode_lookup = "td("
+  elif args.train_mode == "cascaded_seq":
+    train_mode_lookup = "std"
   else:
     train_mode_lookup = args.train_mode
   
@@ -229,41 +229,41 @@ def main(args):
   
   for exp_path in exp_paths:
     print(f"exp_path: {exp_path}")
-    if 'cascaded_seq' in exp_path:
+    if "cascaded_seq" in exp_path:
       continue
       
-    if args.tdl_mode != 'OSD' and 'multiple_fcs' in exp_path:
+    if args.tdl_mode != "OSD" and "multiple_fcs" in exp_path:
       continue
       
     load_exp_path = exp_path
-    if args.train_mode == 'cascaded_seq':
-      exp_path = exp_path.replace('std', f'cascaded_seq__{args.cascaded_scheme}')
+    if args.train_mode == "cascaded_seq":
+      exp_path = exp_path.replace("std", f"cascaded_seq__{args.cascaded_scheme}")
       if not os.path.exists(exp_path):
         os.makedirs(exp_path)
       
-    output_rep_root = os.path.join(exp_path, 'outputs')
+    output_rep_root = os.path.join(exp_path, "outputs")
     if not os.path.exists(output_rep_root):
       os.makedirs(output_rep_root)
     
-    basename = f'output_representations__{args.dataset_key}__{args.tdl_mode}.pt'
+    basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}.pt"
     output_rep_path = os.path.join(output_rep_root, basename)
 
     if os.path.exists(output_rep_path) and not args.force_overwrite:
       continue
     
-    exp_args_path = os.path.join(load_exp_path, 'args.json')
-    with open(exp_args_path, 'r') as infile:
+    exp_args_path = os.path.join(load_exp_path, "args.json")
+    with open(exp_args_path, "r") as infile:
       loaded_args = argparse.Namespace(**json.load(infile))
 
     # Data Handler
     data_dict = {
-        'dataset_name': loaded_args.dataset_name,
-        'data_root': args.dataset_root,
-        'val_split': loaded_args.val_split,
-        'split_idxs_root': args.split_idxs_root,
-        'noise_type': loaded_args.augmentation_noise_type,
-        'load_previous_splits': True,
-        'verbose': False,
+        "dataset_name": loaded_args.dataset_name,
+        "data_root": args.dataset_root,
+        "val_split": loaded_args.val_split,
+        "split_idxs_root": args.split_idxs_root,
+        "noise_type": loaded_args.augmentation_noise_type,
+        "load_previous_splits": True,
+        "verbose": False,
     }
     data_handler = DataHandler(**data_dict)
 
@@ -271,16 +271,16 @@ def main(args):
     loader = data_handler.build_loader(args.dataset_key, loaded_args)
     print("Data handler loaded.")
 
-    figs_root = os.path.join(exp_path, 'figs')
+    figs_root = os.path.join(exp_path, "figs")
     if not os.path.exists(figs_root):
       os.makedirs(figs_root)
 
-    model_config_path = os.path.join(load_exp_path, 'model_config.pt')
+    model_config_path = os.path.join(load_exp_path, "model_config.pt")
     model_dict = torch.load(model_config_path)
 
     # Load model ckpts
-    ckpt_dir = os.path.join(load_exp_path, 'ckpts')
-    ckpts = np.sort(glob.glob(f'{ckpt_dir}/ckpt__*.pt'))
+    ckpt_dir = os.path.join(load_exp_path, "ckpts")
+    ckpts = np.sort(glob.glob(f"{ckpt_dir}/ckpt__*.pt"))
     try:
       selected_ckpt = ckpts[-1]
       print(f"Loading from ckpt {selected_ckpt}")
@@ -288,30 +288,30 @@ def main(args):
       print(f"**Exception: {e}")
       continue
   
-    model_dict['pretrained'] = True
-    model_dict['pretrained_path'] = selected_ckpt
+    model_dict["pretrained"] = True
+    model_dict["pretrained_path"] = selected_ckpt
     
-    if args.train_mode == 'cascaded_seq':
-      model_dict['cascaded'] = True
-      model_dict['bn_opts']['temporal_stats'] = False
-      model_dict['cascaded_scheme'] = args.cascaded_scheme
+    if args.train_mode == "cascaded_seq":
+      model_dict["cascaded"] = True
+      model_dict["bn_opts"]["temporal_stats"] = False
+      model_dict["cascaded_scheme"] = args.cascaded_scheme
     
-    if args.tdl_mode != 'OSD':
-      model_dict['tdl_mode'] = args.tdl_mode
-      model_dict['tdl_alpha'] = args.tdl_alpha
-      model_dict['noise_var'] = args.noise_var
+    if args.tdl_mode != "OSD":
+      model_dict["tdl_mode"] = args.tdl_mode
+      model_dict["tdl_alpha"] = args.tdl_alpha
+      model_dict["noise_var"] = args.noise_var
       
     # Model init op
-    if args.model_key.startswith('resnet'):
+    if args.model_key.startswith("resnet"):
       model_init_op = resnet
-    elif args.model_key.startswith('densenet'):
+    elif args.model_key.startswith("densenet"):
       model_init_op = densenet
 
     # Initialize net
     print("Instantiating model...")
     net = model_init_op.__dict__[args.model_key](**model_dict).to(args.device)
     
-    if args.train_mode in ['ic_only', 'sdn', 'cascaded']:
+    if args.train_mode in ["ic_only", "sdn", "cascaded"]:
       all_flops, normed_flops = sdn_utils.compute_inference_costs(
           data_handler, model_dict, args)
       net.set_target_inference_costs(normed_flops, 
@@ -321,7 +321,7 @@ def main(args):
       torch.save({"flops": all_flops, "normed": normed_flops}, 
                  IC_costs_savepath)
 
-    metrics_path = os.path.join(exp_path, f'metrics.pt')
+    metrics_path = os.path.join(exp_path, f"metrics.pt")
     try:
       print(f"Loading {metrics_path}")
       train_metrics = torch.load(metrics_path)
@@ -329,8 +329,8 @@ def main(args):
     except:
       print(f"Could not plot training curves. Issue with file {metrics_path}")
     try:
-      tau_epoch_asymptote = 1 if args.train_mode == 'ic_only' else 100
-      tau_scheduling_active = args.train_mode != 'ic_only'
+      tau_epoch_asymptote = 1 if args.train_mode == "ic_only" else 100
+      tau_scheduling_active = args.train_mode != "ic_only"
       tau_handler = sdn_utils.IC_tau_handler(
           init_tau=loaded_args.init_tau,
           tau_targets=loaded_args.target_IC_inference_costs, 
@@ -359,14 +359,14 @@ def main(args):
                                                 0, 
                                                 args.device)
 
-    if args.train_mode == 'baseline':
+    if args.train_mode == "baseline":
       final_mean_test_acc = np.mean(test_acc)
     else:
       final_mean_test_acc = test_acc[-1]
-    print(f'Test Acc: {final_mean_test_acc*100:0.2f}%')
+    print(f"Test Acc: {final_mean_test_acc*100:0.2f}%")
 
-    logits = logged_data['logits']
-    y = logged_data['y'].to(logits.device)
+    logits = logged_data["logits"]
+    y = logged_data["y"].to(logits.device)
 
     output_reps = compute_output_representations(logits, y)
 
@@ -374,6 +374,6 @@ def main(args):
     torch.save(output_reps, output_rep_path)
 
     
-if __name__ == '__main__':
+if __name__ == "__main__":
   args = setup_args()
   main(args)

@@ -1,21 +1,20 @@
 #!/bin/bash
 
-DATASET_ROOT='/hdd/mliuzzolino/datasets'  # Specify location of datasets
-EXPERIMENT_ROOT='/hdd/mliuzzolino/cascaded_nets'  # Specify experiment root
-SPLIT_IDXS_ROOT='/hdd/mliuzzolino'  # Specify root of dataset split_idxs
-
+DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
+EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
+SPLIT_IDXS_ROOT="/hdd/mliuzzolino"  # Specify root of dataset split_idxs
 
 # Experiment name to evaluate
-MODEL='resnet18'  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME='CIFAR100'  # CIFAR10, CIFAR100, TinyImageNet
-EXPERIMENT_NAME="${MODEL}/${DATASET_NAME}"
+MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
+DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet
+EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
-TRAIN_MODE='cascaded'  # baseline, cascaded_seq, cascaded
-CASCADED_SCHEME='scheme_2'  # used for train_mode=cascaded_seq
-DATASET_KEY='test'  # used for train_mode=cascaded_seq
+TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
+CASCADED_SCHEME="scheme_2"  # used for train_mode=cascaded_seq
+DATASET_KEY="test"  # used for train_mode=cascaded_seq
 BATCH_SIZE=128
 
-TDL_MODE='OSD'  # OSD, EWS, noise
+TDL_MODE="OSD"  # OSD, EWS, noise
 TDL_ALPHA=0.9
 NOISE_VAR=0.0  # Used for noise kernel only
 N_TIMESTEPS=70  # Used for EWS kernel only
@@ -42,8 +41,8 @@ cmd+=( --noise_var $NOISE_VAR )
 cmd+=( --n_timesteps $N_TIMESTEPS )
 
 ${KEEP_LOGITS} && cmd+=( --keep_logits )
-${DEBUG} && cmd+=( --debug ) && echo 'DEBUG MODE ENABLED'
-${FORCE_OVERWRITE} && cmd+=( --force_overwrite ) && echo 'FORCE OVERWRITE'
+${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
+${FORCE_OVERWRITE} && cmd+=( --force_overwrite ) && echo "FORCE OVERWRITE"
 
 # Run command
 "${cmd[@]}"

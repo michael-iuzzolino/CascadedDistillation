@@ -63,9 +63,9 @@ class SequentialTrainingScheme:
       # Update batch loss
       batch_losses.append(loss.item())
 
-      sys.stdout.write((f'\rBatch {batch_i+1}/{len(loader)} -- '
-                        f'Batch Loss: {np.mean(batch_losses):0.6f} -- '
-                        f'Batch Acc: {np.mean(batch_accs)*100:0.2f}%'))
+      sys.stdout.write((f"\rBatch {batch_i+1}/{len(loader)} -- "
+                        f"Batch Loss: {np.mean(batch_losses):0.6f} -- "
+                        f"Batch Acc: {np.mean(batch_accs)*100:0.2f}%"))
       sys.stdout.flush()
 
     return batch_losses, batch_accs
@@ -137,7 +137,7 @@ class CascadedTrainingScheme(object):
           loss_i = tau_i * loss_i
 
         # Aggregate loss
-        if self.flags.tdl_mode == 'EWS':
+        if self.flags.tdl_mode == "EWS":
           loss = loss + loss_i
         else:
           # Ignore first timestep loss (all 0's output)
@@ -177,9 +177,9 @@ class CascadedTrainingScheme(object):
       mean_batch_loss = torch.stack(batch_losses).mean().item()
       mean_batch_acc = torch.stack(batch_accs).mean().item() * 100
       
-      sys.stdout.write((f'\rTraining Batch {batch_i+1}/{len(loader)} -- '
-                        f'Batch Loss: {mean_batch_loss:0.6f} -- '
-                        f'Batch Acc: {mean_batch_acc:0.2f}%'))
+      sys.stdout.write((f"\rTraining Batch {batch_i+1}/{len(loader)} -- "
+                        f"Batch Loss: {mean_batch_loss:0.6f} -- "
+                        f"Batch Acc: {mean_batch_acc:0.2f}%"))
       sys.stdout.flush()
       
     # Average over the batches per timestep
@@ -191,8 +191,8 @@ class CascadedTrainingScheme(object):
 
 def get_train_loop(n_timesteps, num_classes, flags, tau_handler=None):
   """Retrieve sequential or cascaded training function."""
-  if flags.train_mode == 'baseline':
+  if flags.train_mode == "baseline":
     train_fxn = SequentialTrainingScheme(num_classes, flags)
-  elif flags.train_mode == 'cascaded':
+  elif flags.train_mode == "cascaded":
     train_fxn = CascadedTrainingScheme(n_timesteps, num_classes, flags, tau_handler)
   return train_fxn

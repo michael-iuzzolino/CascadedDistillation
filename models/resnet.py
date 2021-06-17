@@ -20,15 +20,15 @@ from models import model_utils
 from models.internal_classifiers import InternalClassifier
 
 _MODEL_URLS = {
-    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
-    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
-    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
-    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
-    'resnext50_32x4d': 'https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth',
-    'resnext101_32x8d': 'https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth',
-    'wide_resnet50_2': 'https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth',
-    'wide_resnet101_2': 'https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth',
+    "resnet18": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
+    "resnet34": "https://download.pytorch.org/models/resnet34-333f7ec4.pth",
+    "resnet50": "https://download.pytorch.org/models/resnet50-19c8e357.pth",
+    "resnet101": "https://download.pytorch.org/models/resnet101-5d3b4d8f.pth",
+    "resnet152": "https://download.pytorch.org/models/resnet152-b121ed2d.pth",
+    "resnext50_32x4d": "https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth",
+    "resnext101_32x8d": "https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth",
+    "wide_resnet50_2": "https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth",
+    "wide_resnet101_2": "https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth",
 }
 
 
@@ -41,19 +41,19 @@ class ResNet(nn.Module):
     self.name = name
     self._layers_arch = layers
     self._num_classes = num_classes
-    self._train_mode = kwargs.get('train_mode', 'baseline')
-    self._sdn_train_mode = self._train_mode in ['sdn', 'ic_only']
-    self._cascaded = kwargs.get('cascaded', False)
-    self._cascaded_scheme = kwargs.get('cascaded_scheme', 'scheme_2')
+    self._train_mode = kwargs.get("train_mode", "baseline")
+    self._sdn_train_mode = self._train_mode in ["sdn", "ic_only"]
+    self._cascaded = kwargs.get("cascaded", False)
+    self._cascaded_scheme = kwargs.get("cascaded_scheme", "scheme_2")
     
     # Set multiple FCs flag
-    self._multiple_fcs = kwargs.get('multiple_fcs', False)
+    self._multiple_fcs = kwargs.get("multiple_fcs", False)
     self._multiple_fcs = not self._sdn_train_mode and self._multiple_fcs
       
-    if self._train_mode == 'baseline':
+    if self._train_mode == "baseline":
       self._time_bn = False
     else:
-      self._time_bn = kwargs['bn_opts']['temporal_stats']
+      self._time_bn = kwargs["bn_opts"]["temporal_stats"]
     
     # Set up batch norm operation
     self._norm_layer_op = self._setup_bn_op(**kwargs)
@@ -94,7 +94,7 @@ class ResNet(nn.Module):
     # Weight initialization
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
       elif isinstance(m, (self._norm_layer, nn.GroupNorm)):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
@@ -104,8 +104,8 @@ class ResNet(nn.Module):
       self._norm_layer = custom_ops.BatchNorm2d
 
       # Setup batchnorm opts
-      self.bn_opts = kwargs['bn_opts']
-      self.bn_opts['n_timesteps'] = self.timesteps
+      self.bn_opts = kwargs["bn_opts"]
+      self.bn_opts["n_timesteps"] = self.timesteps
       norm_layer_op = functools.partial(self._norm_layer, self.bn_opts)
     else:
       self._norm_layer = nn.BatchNorm2d
@@ -115,9 +115,9 @@ class ResNet(nn.Module):
 
   def _make_layer(self, block, planes, blocks, 
                   stride=1, final_layer=False, **kwargs):
-    tdl_mode = kwargs.get('tdl_mode', 'OSD')
-    tdl_alpha = kwargs.get('tdl_alpha', 0.0)
-    noise_var = kwargs.get('noise_var', 0.0)
+    tdl_mode = kwargs.get("tdl_mode", "OSD")
+    tdl_alpha = kwargs.get("tdl_alpha", 0.0)
+    noise_var = kwargs.get("noise_var", 0.0)
 
     downsample = None
     if stride != 1 or self.inplanes != planes * block.expansion:
@@ -195,7 +195,7 @@ class ResNet(nn.Module):
 
   def turn_off_IC(self):
     for k, params in self.named_parameters():
-      if 'IC' in k and 'final' not in k:
+      if "IC" in k and "final" not in k:
         params.requires_grad = False
         
   def freeze_backbone(self, verbose=False):
@@ -203,10 +203,10 @@ class ResNet(nn.Module):
     self.frozen_params = []
     self.unfrozen_params = []
     for k, params in self.named_parameters():
-      if 'IC' not in k:
+      if "IC" not in k:
         self.frozen_params.append(k)
         if verbose:
-          print(f'\t{k} [frozen]')
+          print(f"\t{k} [frozen]")
         params.requires_grad = False
       else:
         self.unfrozen_params.append(k)
@@ -236,12 +236,12 @@ class ResNet(nn.Module):
     
     
 def make_resnet(arch, block, layers, pretrained, **kwargs):
-  if kwargs.get('imagenet_pretrained', False):
-    assert arch in _MODEL_URLS, f'{arch} not found in _MODEL_URLS'
+  if kwargs.get("imagenet_pretrained", False):
+    assert arch in _MODEL_URLS, f"{arch} not found in _MODEL_URLS"
     
     # Save specified num_classes and switch to imagenet # classes
-    num_classes = kwargs['num_classes']
-    kwargs['num_classes'] = 1000
+    num_classes = kwargs["num_classes"]
+    kwargs["num_classes"] = 1000
     
     # Load model
     model = ResNet(arch, block, layers, **kwargs)
@@ -252,15 +252,15 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     # Adjust names from loaded state_dict to match our model
     new_dict = OrderedDict()
     for k, v in state_dict.items():
-      if '.0.downsample.1' in k:
+      if ".0.downsample.1" in k:
         continue
         
       # Prepend layer0 to head layer to match our code
-      if k.startswith('conv1') or k.startswith('bn1'):
-        k = f'layer0.{k}'
+      if k.startswith("conv1") or k.startswith("bn1"):
+        k = f"layer0.{k}"
       
       # Inflate batch norm along time dimension if cascaded model
-      if kwargs['cascaded'] and 'running_' in k:
+      if kwargs["cascaded"] and "running_" in k:
         v = v.unsqueeze(dim=0).repeat(model.timesteps, 1)
       new_dict[k] = v
     
@@ -279,25 +279,25 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
 
 
 def resnet18(pretrained=False, **kwargs):
-  return make_resnet('resnet18', res_layers.BasicBlock, [2, 2, 2, 2],
+  return make_resnet("resnet18", res_layers.BasicBlock, [2, 2, 2, 2],
                      pretrained, **kwargs)
 
 
 def resnet34(pretrained=False, **kwargs):
-  return make_resnet('resnet34', res_layers.BasicBlock, [3, 4, 6, 3],
+  return make_resnet("resnet34", res_layers.BasicBlock, [3, 4, 6, 3],
                      pretrained, **kwargs)
 
 
 def resnet50(pretrained=False, **kwargs):
-  return make_resnet('resnet50', res_layers.Bottleneck, [3, 4, 6, 3],
+  return make_resnet("resnet50", res_layers.Bottleneck, [3, 4, 6, 3],
                      pretrained, **kwargs)
 
 
 def resnet101(pretrained=False, **kwargs):
-  return make_resnet('resnet101', res_layers.Bottleneck, [3, 4, 23, 3],
+  return make_resnet("resnet101", res_layers.Bottleneck, [3, 4, 23, 3],
                      pretrained, **kwargs)
 
 
 def resnet152(pretrained=False, **kwargs):
-  return make_resnet('resnet152', res_layers.Bottleneck, [3, 8, 36, 3],
+  return make_resnet("resnet152", res_layers.Bottleneck, [3, 8, 36, 3],
                      pretrained, **kwargs)

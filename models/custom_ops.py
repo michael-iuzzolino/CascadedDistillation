@@ -2,7 +2,7 @@
 
 BatchNorm is modified to handle temporal operations. Specifically, activation
 statistics of each layer are changing over time, and to account for this we
-add a time dimension to BatchNorm's running mean and std. The operation now
+add a time dimension to BatchNorm"s running mean and std. The operation now
 accepts a time argument which must be passed in the forward call.
 """
 from __future__ import division
@@ -41,8 +41,8 @@ class _NormBase(nn.Module):
 
   _version = 2
   __constants__ = [
-      'bn_opts', 'track_running_stats', 'momentum', 'eps', 'num_features',
-      'affine'
+      "bn_opts", "track_running_stats", "momentum", "eps", "num_features",
+      "affine"
   ]
 
   def __init__(self,
@@ -60,35 +60,35 @@ class _NormBase(nn.Module):
     self.affine = affine
     self.track_running_stats = track_running_stats
     if self.affine:
-      if self.bn_opts['temporal_affine']:
+      if self.bn_opts["temporal_affine"]:
         self.weight = Parameter(
-            torch.Tensor(self.bn_opts['n_timesteps'], num_features))
+            torch.Tensor(self.bn_opts["n_timesteps"], num_features))
         self.bias = Parameter(
-            torch.Tensor(self.bn_opts['n_timesteps'], num_features))
+            torch.Tensor(self.bn_opts["n_timesteps"], num_features))
       else:
         self.weight = Parameter(torch.Tensor(num_features))
         self.bias = Parameter(torch.Tensor(num_features))
     else:
-      self.register_parameter('weight', None)
-      self.register_parameter('bias', None)
+      self.register_parameter("weight", None)
+      self.register_parameter("bias", None)
     if self.track_running_stats:
-      if self.bn_opts['temporal_stats']:
+      if self.bn_opts["temporal_stats"]:
         self.register_buffer(
-            'running_mean',
-            torch.zeros(self.bn_opts['n_timesteps'], num_features))
+            "running_mean",
+            torch.zeros(self.bn_opts["n_timesteps"], num_features))
         self.register_buffer(
-            'running_var', torch.ones(self.bn_opts['n_timesteps'],
+            "running_var", torch.ones(self.bn_opts["n_timesteps"],
                                       num_features))
       else:
-        self.register_buffer('running_mean', torch.zeros(num_features))
-        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer("running_mean", torch.zeros(num_features))
+        self.register_buffer("running_var", torch.ones(num_features))
 
-      self.register_buffer('num_batches_tracked',
+      self.register_buffer("num_batches_tracked",
                            torch.tensor(0, dtype=torch.long))
     else:
-      self.register_parameter('running_mean', None)
-      self.register_parameter('running_var', None)
-      self.register_parameter('num_batches_tracked', None)
+      self.register_parameter("running_mean", None)
+      self.register_parameter("running_var", None)
+      self.register_parameter("num_batches_tracked", None)
 
     self.reset_parameters()
 
@@ -108,17 +108,17 @@ class _NormBase(nn.Module):
     raise NotImplementedError
 
   def extra_repr(self):
-    return ('{num_features}, eps={eps}, momentum={momentum}, affine={affine}, '
-            'track_running_stats={track_running_stats}'.format(**self.__dict__))
+    return ("{num_features}, eps={eps}, momentum={momentum}, affine={affine}, "
+            "track_running_stats={track_running_stats}".format(**self.__dict__))
 
   def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
                             missing_keys, unexpected_keys, error_msgs):
-    version = local_metadata.get('version', None)
+    version = local_metadata.get("version", None)
 
     if (version is None or version < 2) and self.track_running_stats:
       # at version 2: added num_batches_tracked buffer
       #               this should have a default value of 0
-      num_batches_tracked_key = prefix + 'num_batches_tracked'
+      num_batches_tracked_key = prefix + "num_batches_tracked"
       if num_batches_tracked_key not in state_dict:
         state_dict[num_batches_tracked_key] = torch.tensor(0, dtype=torch.long)
 
@@ -145,7 +145,7 @@ class _BatchNorm(_NormBase):
 
   def forward(self, x, t):
     # Limit t to max
-    t = min(t, self.bn_opts['n_timesteps'] - 1)
+    t = min(t, self.bn_opts["n_timesteps"] - 1)
 
     # Check input dim
     self._check_input_dim(x)
@@ -173,11 +173,11 @@ class _BatchNorm(_NormBase):
     bias = self.bias
 
     # Extract time-dependent params where appropriate
-    if self.bn_opts['temporal_stats']:
+    if self.bn_opts["temporal_stats"]:
       running_mean = running_mean[t]
       running_var = running_var[t]
 
-    if self.bn_opts['temporal_affine']:
+    if self.bn_opts["temporal_affine"]:
       weight = weight[t]
       bias = bias[t]
 
@@ -194,4 +194,4 @@ class BatchNorm2d(_BatchNorm):
 
   def _check_input_dim(self, x):
     if x.dim() != 4:
-      raise ValueError('expected 4D input (got {}D input)'.format(x.dim()))
+      raise ValueError("expected 4D input (got {}D input)".format(x.dim()))

@@ -28,9 +28,9 @@ class IC_tau_handler:
   
 def compute_inference_costs(data_handler, model_dict, args, verbose=False):
   # Model init op
-  if args.model_key.startswith('resnet'):
+  if args.model_key.startswith("resnet"):
     model_init_op = resnet
-  elif args.model_key.startswith('densenet'):
+  elif args.model_key.startswith("densenet"):
     model_init_op = densenet
     
   # Setup sample

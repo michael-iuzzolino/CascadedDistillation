@@ -12,14 +12,14 @@ class HeadLayer(nn.Module):
     super(HeadLayer, self).__init__()
     
     self.layer_i = layer_i
-    self.cascaded = kwargs['cascaded']
-    self.time_bn = kwargs.get('time_bn', kwargs['cascaded'])
-    self.num_classes = kwargs.get('num_classes', -1)
+    self.cascaded = kwargs["cascaded"]
+    self.time_bn = kwargs.get("time_bn", kwargs["cascaded"])
+    self.num_classes = kwargs.get("num_classes", -1)
 
     # Set number of input channels
-    inplanes = kwargs.get('n_channels', 3)
+    inplanes = kwargs.get("n_channels", 3)
 
-    if kwargs.get('imagenet', False):
+    if kwargs.get("imagenet", False):
       self.conv1 = nn.Conv2d(inplanes,
                              planes,
                              kernel_size=7,
@@ -39,7 +39,7 @@ class HeadLayer(nn.Module):
     self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     if self.cascaded:
-      tdl_mode = kwargs.get('tdl_mode', 'OSD')
+      tdl_mode = kwargs.get("tdl_mode", "OSD")
       self.tdline = tdl.setup_tdl_kernel(tdl_mode, kwargs)
 
   def set_time(self, t):
@@ -78,12 +78,12 @@ class BasicBlock(nn.Module):
     super(BasicBlock, self).__init__()
     
     self.layer_i = layer_i
-    self.cascaded = kwargs['cascaded']
-    self.cascaded_scheme = kwargs.get('cascaded_scheme', 'scheme_2')
-    self.time_bn = kwargs.get('time_bn', kwargs['cascaded'])
+    self.cascaded = kwargs["cascaded"]
+    self.cascaded_scheme = kwargs.get("cascaded_scheme", "scheme_2")
+    self.time_bn = kwargs.get("time_bn", kwargs["cascaded"])
     self.downsample = downsample
     self.stride = stride
-    self.num_classes = kwargs.get('num_classes', None)
+    self.num_classes = kwargs.get("num_classes", None)
     
     # Setup ops
     self.conv1 = custom_ops.conv3x3(inplanes, planes, stride)
@@ -94,7 +94,7 @@ class BasicBlock(nn.Module):
 
     # TDL
     if self.cascaded:
-      tdl_mode = kwargs.get('tdl_mode', 'OSD')
+      tdl_mode = kwargs.get("tdl_mode", "OSD")
       self.tdline = tdl.setup_tdl_kernel(tdl_mode, kwargs)
 
   def set_time(self, t):
@@ -102,7 +102,7 @@ class BasicBlock(nn.Module):
     if t == 0:
       self.tdline.reset()
     
-    if self.cascaded_scheme == 'scheme_1':
+    if self.cascaded_scheme == "scheme_1":
       self.res_active = self.t >= self.layer_i
     else:
       self.res_active = True
@@ -165,10 +165,10 @@ class Bottleneck(nn.Module):
     self.layer_i = layer_i
     self.downsample = downsample
     self.stride = stride
-    self.cascaded = kwargs['cascaded']
-    self.cascaded_scheme = kwargs.get('cascaded_scheme', 'scheme_2')
-    self.time_bn = kwargs.get('time_bn', kwargs['cascaded'])
-    self.num_classes = kwargs.get('num_classes', None)
+    self.cascaded = kwargs["cascaded"]
+    self.cascaded_scheme = kwargs.get("cascaded_scheme", "scheme_2")
+    self.time_bn = kwargs.get("time_bn", kwargs["cascaded"])
+    self.num_classes = kwargs.get("num_classes", None)
   
     self.conv1 = custom_ops.conv1x1(inplanes, width)
     self.bn1 = norm_layer(width)
@@ -179,7 +179,7 @@ class Bottleneck(nn.Module):
     self.relu = nn.ReLU(inplace=True)
 
     if self.cascaded:
-      tdl_mode = kwargs.get('tdl_mode', 'OSD')
+      tdl_mode = kwargs.get("tdl_mode", "OSD")
       self.tdline = tdl.setup_tdl_kernel(tdl_mode, kwargs)
 
   def set_time(self, t):
@@ -187,7 +187,7 @@ class Bottleneck(nn.Module):
     if t == 0:
       self.tdline.reset()
     
-    if self.cascaded_scheme == 'scheme_1':
+    if self.cascaded_scheme == "scheme_1":
       self.res_active = self.t >= self.layer_i
     else:
       self.res_active = True

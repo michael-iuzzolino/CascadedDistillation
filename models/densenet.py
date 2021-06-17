@@ -28,7 +28,7 @@ class DenseNet(nn.Module):
 
     self.name = name
     self.growth_rate = growth_rate
-    self._cascaded = kwargs['cascaded']
+    self._cascaded = kwargs["cascaded"]
     self.block_arch = block_arch
 
     # Set batch norm op
@@ -48,7 +48,7 @@ class DenseNet(nn.Module):
     self.layers = []
         
     # Set number of input channels
-    in_planes = kwargs.get('n_channels', 3)
+    in_planes = kwargs.get("n_channels", 3)
     
     num_planes = 2 * growth_rate
     self.conv1 = nn.Conv2d(in_planes, num_planes, kernel_size=3, 
@@ -117,11 +117,11 @@ class DenseNet(nn.Module):
       self._norm_layer = custom_ops.BatchNorm2d
 
       # Setup batchnorm opts
-      self.bn_opts = kwargs.get('bn_opts', {
-          'affine': False,
-          'standardize': False
+      self.bn_opts = kwargs.get("bn_opts", {
+          "affine": False,
+          "standardize": False
       })
-      self.bn_opts['n_timesteps'] = self.timesteps
+      self.bn_opts["n_timesteps"] = self.timesteps
       norm_layer_op = functools.partial(self._norm_layer, self.bn_opts)
     else:
       self._norm_layer = nn.BatchNorm2d
@@ -163,34 +163,34 @@ def make_densenet(name, block, layers, pretrained, growth_rate, **kwargs):
   model = DenseNet(name, block, layers, growth_rate=growth_rate, **kwargs)
 
   if pretrained:
-    kwargs['model_name'] = name
+    kwargs["model_name"] = name
     model = model_utils.load_model(model, kwargs)
 
   return model
 
 
 def densenet121(pretrained=False, **kwargs):
-  return make_densenet('densenet121', dense_blocks.Bottleneck, [6, 12, 24, 16],
+  return make_densenet("densenet121", dense_blocks.Bottleneck, [6, 12, 24, 16],
                        pretrained, growth_rate=32, **kwargs)
 
 
 def densenet161(pretrained=False, **kwargs):
-  return make_densenet('densenet161', dense_blocks.Bottleneck, [6, 12, 36, 24],
+  return make_densenet("densenet161", dense_blocks.Bottleneck, [6, 12, 36, 24],
                        pretrained, growth_rate=48, **kwargs)
 
 
 def densenet169(pretrained=False, **kwargs):
-  return make_densenet('densenet169', dense_blocks.Bottleneck, [6, 12, 32, 32],
+  return make_densenet("densenet169", dense_blocks.Bottleneck, [6, 12, 32, 32],
                        pretrained, growth_rate=32, **kwargs)
 
 
 def densenet201(pretrained=False, **kwargs):
-  return make_densenet('densenet201', dense_blocks.Bottleneck, [6, 12, 48, 32],
+  return make_densenet("densenet201", dense_blocks.Bottleneck, [6, 12, 48, 32],
                        pretrained, growth_rate=32, **kwargs)
 
 
 def densenet_cifar(pretrained=False, **kwargs):
   block_arch = [6, 12, 24, 16]
   growth_rate = 16
-  return make_densenet('densenet121_cifar', dense_blocks.Bottleneck, block_arch,
+  return make_densenet("densenet121_cifar", dense_blocks.Bottleneck, block_arch,
                        pretrained, growth_rate=growth_rate, **kwargs)

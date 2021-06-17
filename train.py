@@ -18,10 +18,6 @@ from modules import utils
 from torch import optim
 
 
-_CHECK_PRETRAINED = False
-_USE_PRETRAINED_IMAGENET_SETS = ["ImageNet2012", "StanfordCars", "CUB200"]
-
-
 def setup_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("--random_seed", type=int, default=42,
@@ -211,11 +207,11 @@ def setup_dataset(args):
   return data_handler, loaders
 
 
-def setup_model(num_classes, device, args):
+def setup_model(data_handler, device, save_root, args):
   # Model
   model_dict = {
       "seed": args.random_seed,
-      "num_classes": num_classes,
+      "num_classes": data_handler.num_classes,
       "pretrained": False,
       "train_mode": args.train_mode,
       "cascaded": args.cascaded,
@@ -229,8 +225,8 @@ def setup_model(num_classes, device, args):
           "temporal_affine": args.bn_time_affine,
           "temporal_stats": args.bn_time_stats,
       },
-      "imagenet": args.dataset_name in _USE_PRETRAINED_IMAGENET_SETS,
-      "imagenet_pretrained": args.dataset_name in _USE_PRETRAINED_IMAGENET_SETS,
+      "imagenet": args.dataset_name == "ImageNet2012",
+      "imagenet_pretrained": args.dataset_name == "ImageNet2012",
       "n_channels": 1 if args.dataset_name == "FashionMNIST" else 3
   }
 
@@ -245,33 +241,13 @@ def setup_model(num_classes, device, args):
   net = model_init_op.__dict__[args.model_key](**model_dict).to(device)
   print("Model instantiated.")
   
-  return net, model_dict
-
-
-def main(args):
-  # Make reproducible
-  utils.make_reproducible(args.random_seed)
-
-  # Set Device
-  device = torch.device(args.device
-                        if torch.cuda.is_available() and not args.use_cpu
-                        else "cpu")
-
-  # Setup output directory
-  save_root = setup_output_dir(args)
-
-  # Setup dataset loaders
-  data_handler, loaders = setup_dataset(args)
-  
-  # Setup model
-  net, model_dict = setup_model(data_handler.num_classes, device, args)
-  
   # Compute inference costs if ic_only / SDN
   if args.train_mode in ["ic_only", "sdn"]:
     all_flops, normed_flops = sdn_utils.compute_inference_costs(data_handler, 
                                                                 model_dict, 
                                                                 args)
-    net.set_target_inference_costs(normed_flops, args.target_IC_inference_costs,
+    net.set_target_inference_costs(normed_flops, 
+                                   args.target_IC_inference_costs,
                                    use_all=args.use_all_ICs)
     
     if args.use_all_ICs:
@@ -281,6 +257,30 @@ def main(args):
   model_dict["model_key"] = args.model_key
   utils.save_model_config(model_dict, save_root, args.debug)
   
+  return net
+
+
+def fix_dict(model_state_dict, args):
+  if args.train_mode == "sdn":
+    # Fix dictionary
+    fixed_dict = OrderedDict()
+    for k, v in model_state_dict.items():
+      if k == "fc.weight":
+        fixed_dict["fc.fc.weight"] = v
+      elif k == "fc.bias":
+        fixed_dict["fc.fc.bias"] = v
+      else:
+        fixed_dict[k] = v
+  elif args.train_mode == "cascaded":
+    fixed_dict = OrderedDict()
+    for k, v in model_state_dict.items():
+      if args.cascaded and "running_" in k and len(v.size()):
+        continue
+      fixed_dict[k] = v
+  return fixed_dict
+
+
+def condition_model(save_root, args):
   # Check mode and load optimizer
   if (args.train_mode == "ic_only" 
       or (args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights)):
@@ -291,24 +291,13 @@ def main(args):
     checkpoint = torch.load(baseline_ckpt_path)
     model_state_dict = checkpoint["model"]
     
-    if args.train_mode == "sdn":
-      # Fix dictionary
-      fixed_dict = OrderedDict()
-      for k, v in model_state_dict.items():
-        if k == "fc.weight":
-          fixed_dict["fc.fc.weight"] = v
-        elif k == "fc.bias":
-          fixed_dict["fc.fc.bias"] = v
-        else:
-          fixed_dict[k] = v
-    elif args.train_mode == "cascaded":
-      fixed_dict = OrderedDict()
-      for k, v in model_state_dict.items():
-        if args.cascaded and "running_" in k and len(v.size()):
-          continue
-        fixed_dict[k] = v
-
+    # Fix model dict
+    fixed_dict = fix_dict(model_state_dict, args)
+    
+    # Load dict
     net.load_state_dict(fixed_dict, strict=False)
+    
+    # Set handler params
     if args.train_mode == "ic_only":
       net.freeze_backbone()
       tau_scheduling_active = False
@@ -354,19 +343,51 @@ def main(args):
     if args.train_mode == "baseline":
       net.turn_off_IC()
   
+  returns = {
+    "optimizer_dict": optimizer_dict,
+    "optimizer_init_op": optimizer_init_op,
+    "lr_schedule_milestones": lr_schedule_milestones,
+    "lr_schedule_gamma": lr_schedule_gamma,
+    "tau_epoch_asymptote": tau_epoch_asymptote,
+    "tau_scheduling_active": tau_scheduling_active,
+  }
+  return returns
+
+
+def main(args):
+  # Make reproducible
+  utils.make_reproducible(args.random_seed)
+
+  # Set Device
+  device = torch.device(args.device
+                        if torch.cuda.is_available() and not args.use_cpu
+                        else "cpu")
+
+  # Setup output directory
+  save_root = setup_output_dir(args)
+
+  # Setup dataset loaders
+  data_handler, loaders = setup_dataset(args)
+  
+  # Setup model
+  net = setup_model(data_handler, device, save_root, args)
+  
+  # Condition model and get handler opts
+  opts = condition_model(save_root, args)
+  
   # Tau handler
   tau_handler = sdn_utils.IC_tau_handler(init_tau=args.init_tau,
                                          tau_targets=args.target_IC_inference_costs, 
-                                         epoch_asymptote=tau_epoch_asymptote,
-                                         active=tau_scheduling_active)
+                                         epoch_asymptote=opts["tau_epoch_asymptote"],
+                                         active=opts["tau_scheduling_active"])
   
   # Init optimizer
-  optimizer = optimizer_init_op(net.parameters(), **optimizer_dict)
+  optimizer = opts["optimizer_init_op"](net.parameters(), **opts["optimizer_dict"])
 
   # Scheduler
   lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer,
-                                                milestones=lr_schedule_milestones,
-                                                gamma=lr_schedule_gamma)
+                                                milestones=opts["lr_schedule_milestones"],
+                                                gamma=opts["lr_schedule_gamma"])
 
   # Criterion
   criterion = losses.categorical_cross_entropy
@@ -392,19 +413,6 @@ def main(args):
       "val": collections.defaultdict(list),
       "test": collections.defaultdict(float),
   }
-  
-  if (_CHECK_PRETRAINED 
-      and args.train_mode == "cascaded" 
-      and args.use_pretrained_weights):
-    # Gather batchnorm running mean, std
-    net.train()
-    for X, y in loaders["train"]:
-      for t in range(net.timesteps):
-        with torch.no_grad():
-          _ = net(X.to(args.device), t)
-    test_loss, test_acc = eval_fxn(net, loaders["test"], criterion, 0, device)
-    print(f"Init test acc: {test_acc}")
-    exit()
     
   # Main training loop
   try:

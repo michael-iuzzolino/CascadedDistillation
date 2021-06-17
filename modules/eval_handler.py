@@ -32,7 +32,7 @@ class SequentialEvalLoop:
     for batch_i, (data, targets) in enumerate(loader):
       
       if self.verbose:
-        sys.stdout.write(f'\rBatch {batch_i+1}/{len(loader)}')
+        sys.stdout.write(f"\rBatch {batch_i+1}/{len(loader)}")
         sys.stdout.flush()
         
       # One-hot-ify targets
@@ -70,9 +70,9 @@ class SequentialEvalLoop:
     
     if self.keep_logits:
       logged_data = {
-          'logits': torch.cat(batch_logits),
-          'embeddings': torch.cat(batch_embeddings),
-          'y': torch.cat(ys),
+          "logits": torch.cat(batch_logits),
+          "embeddings": torch.cat(batch_embeddings),
+          "y": torch.cat(ys),
       }
       return batch_losses, batch_accs, logged_data
     else:
@@ -113,7 +113,7 @@ class CascadedEvalLoop(object):
     sample_count = 0
     for batch_i, (x, targets) in enumerate(loader):
       if self.verbose:
-        sys.stdout.write(f'\rBatch {batch_i+1}/{len(loader)}')
+        sys.stdout.write(f"\rBatch {batch_i+1}/{len(loader)}")
         sys.stdout.flush()
       # One-hot-ify targets
       y = torch.eye(self.num_classes)[targets]
@@ -181,9 +181,9 @@ class CascadedEvalLoop(object):
       batch_embeddings = torch.cat(batch_embeddings, dim=1)
       ys = torch.cat(ys)
       logged_data = {
-          'logits': batch_logits,
-          'embeddings': batch_embeddings,
-          'y': ys,
+          "logits": batch_logits,
+          "embeddings": batch_embeddings,
+          "y": ys,
       }
       return batch_losses, batch_accs, logged_data
     else:
@@ -193,10 +193,10 @@ class CascadedEvalLoop(object):
 def get_eval_loop(n_timesteps, num_classes, cascaded, flags,
                   keep_logits=False, verbose=False, tau_handler=None):
   """Retrieve sequential or cascaded eval function."""
-  if flags.train_mode == 'baseline':
+  if flags.train_mode == "baseline":
     eval_fxn = SequentialEvalLoop(num_classes, keep_logits, verbose)
-  elif flags.train_mode == 'cascaded':
+  elif flags.train_mode == "cascaded":
     eval_fxn = CascadedEvalLoop(n_timesteps, num_classes, keep_logits, verbose)
-  elif flags.train_mode == 'cascaded_seq':
+  elif flags.train_mode == "cascaded_seq":
     eval_fxn = CascadedEvalLoop(n_timesteps, num_classes, keep_logits, verbose)
   return eval_fxn

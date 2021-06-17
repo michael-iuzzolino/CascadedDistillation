@@ -1,23 +1,22 @@
 #!/bin/bash
 
-DATASET_ROOT='/hdd/mliuzzolino/datasets'  # Specify location of datasets
-EXPERIMENT_ROOT='/hdd/mliuzzolino/cascaded_nets'  # Specify experiment root
-SPLIT_IDXS_ROOT='/hdd/mliuzzolino'  # Specify root of dataset split_idxs
+DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
+EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
+SPLIT_IDXS_ROOT="/hdd/mliuzzolino"  # Specify root of dataset split_idxs
 
-MODEL='resnet18'  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME='CIFAR100'  # CIFAR10, CIFAR100, TinyImageNet
-EXPERIMENT_NAME="${MODEL}/${DATASET_NAME}"
+MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
+DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet
+EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
-TRAIN_MODE='cascaded'  # baseline, cascaded
-CASCADED_SCHEME='scheme_2'  # scheme_1, scheme_2
+TRAIN_MODE="cascaded"  # baseline, cascaded
+CASCADED_SCHEME="scheme_2"  # scheme_1, scheme_2
 MULTIPLE_FCS=false
 
 LAMBDA_VALS=(0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
-
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
@@ -29,7 +28,7 @@ NESTEROV=true
 # General / Dataset / Train params
 DEVICE=0
 RANDOM_SEEDS=(42)  # To sweep, set as list. E.g., RANDOM_SEEDS=(42 542 1042)
-EPOCHS=2  # 120
+EPOCHS=120
 BATCH_SIZE=128
 NUM_WORKERS=4
 DEBUG=false
@@ -62,7 +61,7 @@ do
       ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
       ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
       ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
-      ${DEBUG} && cmd+=( --debug ) && echo 'DEBUG MODE ENABLED'
+      ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
 
       # Run command
       "${cmd[@]}"

@@ -41,7 +41,7 @@ def add_gaussian_blur(x, k_size=3):
   padding = (k_size - 1) // 2
 
   x = x.unsqueeze(dim=0)
-  padded_x = F.pad(x, [padding] * x.dim(), mode='reflect')
+  padded_x = F.pad(x, [padding] * x.dim(), mode="reflect")
   x = F.conv2d(padded_x, kernel, groups=3)
   return x.squeeze()
 
@@ -53,12 +53,12 @@ def add_patch(tensor,
               max_size=32):
   """Add focus/occluding patch."""
   _, h, w = tensor.shape
-  if noise_location == 'random':
+  if noise_location == "random":
     w_size = np.random.randint(min_size, max_size+1)
     h_size = w_size
     x1 = np.random.randint(0, w - w_size + 1)
     y1 = np.random.randint(0, h - h_size + 1)
-  elif noise_location == 'center':
+  elif noise_location == "center":
     w_size = min_size
     h_size = min_size
     # Center
@@ -68,14 +68,14 @@ def add_patch(tensor,
   x2 = x1 + w_size
   y2 = y1 + h_size
 
-  if patch_type == 'focus':
+  if patch_type == "focus":
     blured_tensor = add_gaussian_blur(tensor.clone())
     blured_tensor[:, y1:y2, x1:x2] = tensor[:, y1:y2, x1:x2]
     tensor = blured_tensor.clone()
-  elif patch_type == 'occlusion':
+  elif patch_type == "occlusion":
     tensor[:, y1:y2, x1:x2] = 0
   else:
-    assert False, f'{patch_type} not implemented!'
+    assert False, f"{patch_type} not implemented!"
   return tensor
 
 
@@ -237,7 +237,7 @@ class PerlinNoise(object):
 
   def __init__(self,
                half=False,
-               half_dim='height',
+               half_dim="height",
                frequency=5,
                proportion=0.4,
                b_w=True):
@@ -325,7 +325,7 @@ class PerlinNoise(object):
 
     if self.half:
       half = img_shape[1]//2
-      if self.half_dim == 'height':
+      if self.half_dim == "height":
         mask[:, :half, :] = 1
       else:
         mask[:, :, :half] = 1
@@ -376,25 +376,25 @@ class NoiseHandler:
     self._max_rot_angle = 60
 
     self._random_walker = None
-    if noise_type == 'translation':
+    if noise_type == "translation":
       self._random_walker = RandomWalkGenerator(n_total_timesteps,
                                                 n_total_samples)
 
   def __call__(self, x_src, sample_i=None, t=None):
     x = x_src.clone()
-    if self.noise_type in ['occlusion', 'focus']:
+    if self.noise_type in ["occlusion", "focus"]:
       x_noised = add_patch(x,
-                           noise_location='random',
+                           noise_location="random",
                            patch_type=self.noise_type,
                            min_size=self._min_size,
                            max_size=self._max_size)
-    elif self.noise_type == 'resolution':
+    elif self.noise_type == "resolution":
       x_noised = FocusBlur()(x)
-    elif self.noise_type == 'Perlin':
+    elif self.noise_type == "Perlin":
       x_noised = PerlinNoise()(x)
-    elif self.noise_type == 'translation':
+    elif self.noise_type == "translation":
       x_noised = self._random_walker(x, sample_i, t)
-    elif self.noise_type == 'rotation':
+    elif self.noise_type == "rotation":
       x_noised = rotate_image(x, max_rot_angle=self._max_rot_angle)
 
     return x_noised

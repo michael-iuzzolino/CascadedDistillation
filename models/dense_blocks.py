@@ -13,7 +13,7 @@ class Bottleneck(nn.Module):
     super().__init__()
 
     mid_plane = 4 * growth_rate
-    self._cascaded = kwargs['cascaded']
+    self._cascaded = kwargs["cascaded"]
 
     self.relu = nn.ReLU()
 
@@ -26,7 +26,7 @@ class Bottleneck(nn.Module):
                            stride=1, padding=1, bias=False)
 
     if self._cascaded:
-      tdl_mode = kwargs.get('tdl_mode', 'OSD')
+      tdl_mode = kwargs.get("tdl_mode", "OSD")
       self.tdline = tdl.setup_TDL(tdl_mode, growth_rate, kwargs)
 
   def set_time(self, t):
@@ -56,7 +56,7 @@ class Transition(nn.Module):
     """Initialize transition layer."""
     super().__init__()
 
-    self._cascaded = kwargs['cascaded']
+    self._cascaded = kwargs["cascaded"]
 
     self.bn = norm_layer(in_planes)
     self.relu = nn.ReLU()

@@ -47,9 +47,9 @@ def get_transforms(dataset_key,
                    noise_type=None,
                    noise_transform_all=False):
   """Create dataset transform list."""
-  if dataset_key == 'train':
+  if dataset_key == "train":
     transforms_list = [
-        T.RandomCrop(32, padding=4, padding_mode='reflect'),
+        T.RandomCrop(32, padding=4, padding_mode="reflect"),
         T.RandomHorizontalFlip(),
         T.ToTensor(),
         T.Normalize(mean, std),
@@ -61,7 +61,7 @@ def get_transforms(dataset_key,
     ]
 
   if (noise_type is not None
-      and (dataset_key == 'train' or noise_transform_all)):
+      and (dataset_key == "train" or noise_transform_all)):
     transforms_list.append(noise.NoiseHandler(noise_type))
 
   transforms = T.Compose(transforms_list)
@@ -81,55 +81,55 @@ def split_dev_set(dataset_src, mean, std, dataset_len, val_split,
                                                      n_sample_splits)
 
   train_set.dataset = copy.copy(dataset_src)
-  val_set.dataset.transform = get_transforms('test', mean, std)
+  val_set.dataset.transform = get_transforms("test", mean, std)
 
   # Set indices save/load path
   val_percent = int(val_split * 100)
-  if '.json' not in split_idxs_root:
+  if ".json" not in split_idxs_root:
     idx_filepath = os.path.join(
-        split_idxs_root, f'{val_percent}-{100-val_percent}_val_split.json')
+        split_idxs_root, f"{val_percent}-{100-val_percent}_val_split.json")
   else:
     idx_filepath = split_idxs_root
 
   # Check load indices
   if load_previous_splits and os.path.exists(idx_filepath):
     if verbose:
-      print(f'Loading previous splits from {idx_filepath}')
-    with open(idx_filepath, 'r') as infile:
+      print(f"Loading previous splits from {idx_filepath}")
+    with open(idx_filepath, "r") as infile:
       loaded_idxs = json.load(infile)
 
     # Set indices
-    train_set.indices = loaded_idxs['train']
-    val_set.indices = loaded_idxs['val']
+    train_set.indices = loaded_idxs["train"]
+    val_set.indices = loaded_idxs["val"]
 
   # Save idxs
   else:
     if verbose:
-      print(f'Saving split idxs to {idx_filepath}...')
+      print(f"Saving split idxs to {idx_filepath}...")
     save_idxs = {
-        'train': list(train_set.indices),
-        'val': list(val_set.indices),
+        "train": list(train_set.indices),
+        "val": list(val_set.indices),
     }
 
     # Dump to json
-    with open(idx_filepath, 'w') as outfile:
+    with open(idx_filepath, "w") as outfile:
       json.dump(save_idxs, outfile)
 
   if verbose:
     # Print
-    print(f'{len(train_set):,} train examples loaded.')
-    print(f'{len(val_set):,} val examples loaded.')
+    print(f"{len(train_set):,} train examples loaded.")
+    print(f"{len(val_set):,} val examples loaded.")
 
   return train_set, val_set
 
 
 def set_dataset_stats(dataset_name):
   """Set dataset stats for normalization given dataset."""
-  if dataset_name.lower() == 'cifar10':
+  if dataset_name.lower() == "cifar10":
     mean = (0.4914, 0.4822, 0.4465)
     std = (0.2470, 0.2435, 0.2616)
 
-  elif dataset_name.lower() == 'cifar100':
+  elif dataset_name.lower() == "cifar100":
     mean = (0.5071, 0.4866, 0.4409)
     std = (0.2673, 0.2564, 0.2762)
   return mean, std
@@ -148,15 +148,15 @@ def build_dataset(root,
                   verbose=True):
   """Build dataset."""
   if verbose:
-    print(f'Loading {dataset_name} {dataset_key} data...')
+    print(f"Loading {dataset_name} {dataset_key} data...")
 
   # Datsaet
-  if dataset_name.lower() == 'cifar10':
+  if dataset_name.lower() == "cifar10":
     dataset_op = CIFAR10Handler
-  elif dataset_name.lower() == 'cifar100':
+  elif dataset_name.lower() == "cifar100":
     dataset_op = CIFAR100Handler
   else:
-    assert False, f'{dataset_name} wrapper not implemented!'
+    assert False, f"{dataset_name} wrapper not implemented!"
 
   # Transforms
   transforms = get_transforms(dataset_key, mean, std,
@@ -164,7 +164,7 @@ def build_dataset(root,
 
   # Build dataset source
   dataset_src = dataset_op(root=root,
-                           train=dataset_key == 'train',
+                           train=dataset_key == "train",
                            transform=transforms,
                            target_transform=None,
                            download=True)
@@ -173,7 +173,7 @@ def build_dataset(root,
   dataset_len = dataset_src.data.shape[0]
 
   # Split
-  if dataset_key == 'train':
+  if dataset_key == "train":
     if val_split:
       dataset_src = split_dev_set(dataset_src,
                                   mean,
@@ -188,9 +188,10 @@ def build_dataset(root,
 
   # Stdout out
   if verbose:
-    print((f'{dataset_len:,} '
-           f'{"dev" if dataset_key=="train" else dataset_key} '
-           f'examples loaded.'))
+    dataset_key_str = "dev" if dataset_key=="train" else dataset_key
+    print((f"{dataset_len:,} "
+           f"{dataset_key_str} "
+           f"examples loaded."))
 
   return dataset_src
 
@@ -211,7 +212,7 @@ def create_datasets(root,
   train_dataset, val_dataset = build_dataset(
       root,
       dataset_name,
-      dataset_key='train',
+      dataset_key="train",
       mean=mean,
       std=std,
       val_split=val_split,
@@ -222,7 +223,7 @@ def create_datasets(root,
 
   test_dataset = build_dataset(root,
                                dataset_name,
-                               dataset_key='test',
+                               dataset_key="test",
                                mean=mean,
                                std=std,
                                noise_type=noise_type,
@@ -230,9 +231,9 @@ def create_datasets(root,
 
   # Package
   dataset_dict = {
-      'train': train_dataset,
-      'val': val_dataset,
-      'test': test_dataset,
+      "train": train_dataset,
+      "val": val_dataset,
+      "test": test_dataset,
   }
 
   return dataset_dict

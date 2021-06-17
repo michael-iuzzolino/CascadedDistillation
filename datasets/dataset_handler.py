@@ -13,7 +13,7 @@ class DataHandler:
                data_root,
                val_split=0.1,
                test_split=0.1,
-               split_idxs_root='split_idxs',
+               split_idxs_root="split_idxs",
                noise_type=None,
                load_previous_splits=True,
                verbose=True):
@@ -44,11 +44,11 @@ class DataHandler:
 
   def _set_num_classes(self, dataset_name):
     """Set number of classes in dataset."""
-    if dataset_name == 'CIFAR10':
+    if dataset_name == "CIFAR10":
       self.num_classes = 10
-    elif dataset_name == 'CIFAR100':
+    elif dataset_name == "CIFAR100":
       self.num_classes = 100
-    elif dataset_name == 'TinyImageNet':
+    elif dataset_name == "TinyImageNet":
       self.num_classes = 200
 
   def get_transform(self, dataset_key=None):
@@ -72,33 +72,33 @@ class DataHandler:
         found = False
 
     if not found:
-      print('Transform list not found!')
+      print("Transform list not found!")
     else:
       found = False
       for xform in transforms:
-        if 'normalize' in str(xform).lower():
+        if "normalize" in str(xform).lower():
           normalize_transform = xform
           found = True
           break
 
     if not found:
-      print('Normalization transform not found!')
+      print("Normalization transform not found!")
     return normalize_transform
 
   def _build_split_idx_root(self, split_idxs_root, dataset_name):
     """Build directory for split idxs."""
-    if '.json' in split_idxs_root and not os.path.exists(split_idxs_root):
+    if ".json" in split_idxs_root and not os.path.exists(split_idxs_root):
       split_idxs_root = os.path.join(split_idxs_root, dataset_name)
-    print(f'Setting split idxs root to {split_idxs_root}')
+    print(f"Setting split idxs root to {split_idxs_root}")
     if not os.path.exists(split_idxs_root):
-      print(f'{split_idxs_root} does not exist!')
+      print(f"{split_idxs_root} does not exist!")
       os.makedirs(split_idxs_root)
-      print('Complete.')
+      print("Complete.")
     return split_idxs_root
 
   def _build_datasets(self):
     """Build dataset."""
-    if 'cifar' in self.dataset_name.lower():
+    if "cifar" in self.dataset_name.lower():
       dataset_dict = cifar_handler.create_datasets(
           self.data_root,
           dataset_name=self.dataset_name,
@@ -107,7 +107,7 @@ class DataHandler:
           noise_type=self.noise_type,
           load_previous_splits=self.load_previous_splits,
           verbose=self._verbose)
-    elif self.dataset_name.lower() == 'tinyimagenet':
+    elif self.dataset_name.lower() == "tinyimagenet":
       dataset_dict = tinyimagenet_handler.create_datasets(self.data_root,
                                                           self.val_split,
                                                           self.split_idxs_root)
@@ -127,7 +127,7 @@ class DataHandler:
     if dont_shuffle_train:
       shuffle = False
     else:
-      shuffle = dataset_key == 'train'
+      shuffle = dataset_key == "train"
 
     # Creates dataloaders, which load data in batches
     loader = torch.utils.data.DataLoader(

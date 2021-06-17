@@ -37,8 +37,8 @@ def split_dev_set(img_paths, val_split):
     n_val_samples = int(len(idxs) * val_split)
     val_idxs = np.random.choice(idxs, n_val_samples, replace=False)
     train_idxs = list(set(idxs).difference(set(val_idxs)))
-    dataset_idx_lookup['val'] += list(val_idxs)
-    dataset_idx_lookup['train'] += list(train_idxs)
+    dataset_idx_lookup["val"] += list(val_idxs)
+    dataset_idx_lookup["train"] += list(train_idxs)
 
   dataset_idx_lookup = {
       key: np.array(val)
@@ -64,7 +64,7 @@ class TinyImagenetDataset(Dataset):
                val_split=None,
                split_idxs_root=None,
                load_previous_splits=True):
-    self.root = os.path.join(root, 'TinyImageNet/data/')
+    self.root = os.path.join(root, "TinyImageNet/data/")
     self.dataset_key = dataset_key
     if not os.path.exists(self.root):
       print("ERROR! Expects TinyImageNet data at <root>/TinyImageNet/data!")
@@ -76,22 +76,22 @@ class TinyImagenetDataset(Dataset):
     self._setup_transforms()
     
     # Set dataset path
-    if dataset_key == 'test':
-      self.dataset_key = 'test'
-      self.dataset_path = os.path.join(self.root, 'val')
+    if dataset_key == "test":
+      self.dataset_key = "test"
+      self.dataset_path = os.path.join(self.root, "val")
     else:
-      self.dataset_path = os.path.join(self.root, 'train')
+      self.dataset_path = os.path.join(self.root, "train")
     
     self._setup_dataset_paths(val_split, split_idxs_root, load_previous_splits)
     
   def _create_label_lookup(self):
-    path = os.path.join(self.root, 'wnids.txt')
-    with open(path, 'r') as infile:
+    path = os.path.join(self.root, "wnids.txt")
+    with open(path, "r") as infile:
       target_keys = [ele.strip() for ele in infile]
 
     lookup = {}
-    path = os.path.join(self.root, 'words.txt')
-    with open(path, 'r') as infile:
+    path = os.path.join(self.root, "words.txt")
+    with open(path, "r") as infile:
       key_i = 0
       for line in infile:
         key, name = line.strip().split("\t")
@@ -104,21 +104,21 @@ class TinyImagenetDataset(Dataset):
   def _setup_dataset_paths(self, val_split, split_idxs_root,
                            load_previous_splits):
     # Load paths
-    self.img_paths = glob.glob(f'{self.dataset_path}/*/*')
+    self.img_paths = glob.glob(f"{self.dataset_path}/*/*")
 
     # Compute num samples in dataset
     dataset_len = len(self.img_paths)
 
-    if self.dataset_key is not 'test' and val_split is not None:
+    if self.dataset_key != "test" and val_split is not None:
       # Set indices save/load path
       val_percent = int(val_split * 100)
-      basename = f'{val_percent}-{100-val_percent}_val_split.json'
+      basename = f"{val_percent}-{100-val_percent}_val_split.json"
       idx_filepath = os.path.join(split_idxs_root, basename)
       print("idx_filepath: ", idx_filepath)
       # Check load indices
       if load_previous_splits and os.path.exists(idx_filepath):
         print(f"Loading previous splits from {idx_filepath}")
-        with open(idx_filepath, 'r') as infile:
+        with open(idx_filepath, "r") as infile:
           loaded_idxs = json.load(infile)
         dataset_idxs = loaded_idxs[self.dataset_key]
         print("Complete.")
@@ -132,7 +132,7 @@ class TinyImagenetDataset(Dataset):
             key: [int(ele) for ele in vals]
             for key, vals in split_idxs_dict.items()
         }
-        with open(idx_filepath, 'w') as outfile:
+        with open(idx_filepath, "w") as outfile:
           json.dump(save_idxs, outfile)
         print("Complete")
 
@@ -141,7 +141,7 @@ class TinyImagenetDataset(Dataset):
     print(f"Loaded {self.dataset_key} with {n_samples} samples...")
   
   def _setup_transforms(self):
-    if self.dataset_key == 'train':
+    if self.dataset_key == "train":
       xform_list = [T.RandomResizedCrop(_RESIZED_CROP_DIM), 
                     T.RandomHorizontalFlip(p=0.5)]
     else:
@@ -177,9 +177,9 @@ class TinyImagenetDataset(Dataset):
   
 def create_datasets(data_root, val_split, split_idxs_root, *args, **kwargs):
   dataset_dict = {}
-  for dataset_key in ['train', 'val', 'test']:
+  for dataset_key in ["train", "val", "test"]:
     print(f"Loading {dataset_key} data...")
-    if dataset_key == 'test':
+    if dataset_key == "test":
       dataset_i = TinyImagenetDataset(data_root, dataset_key)
     else:
       dataset_i = TinyImagenetDataset(data_root, dataset_key,
