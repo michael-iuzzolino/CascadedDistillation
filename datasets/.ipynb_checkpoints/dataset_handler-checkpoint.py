@@ -2,10 +2,6 @@
 import os
 import torch
 from datasets import cifar_handler
-from datasets import cub200_handler
-from datasets import fashion_mnist_handler
-from datasets import imagenet2012_handler
-from datasets import stanford_cars_handler
 from datasets import tinyimagenet_handler
 
 
@@ -17,9 +13,8 @@ class DataHandler:
                data_root,
                val_split=0.1,
                test_split=0.1,
-               split_idxs_root='/tmp/split_idxs',
+               split_idxs_root='split_idxs',
                noise_type=None,
-               ood_mode=None,
                load_previous_splits=True,
                verbose=True):
     """Initialize dataset handler."""
@@ -28,27 +23,21 @@ class DataHandler:
     self.test_split = test_split
     self.val_split = val_split
     self.noise_type = noise_type
-    self._ood_mode = ood_mode
     self._verbose = verbose
     self.load_previous_splits = load_previous_splits
     
-    self.imagenet_dim = 224
-    self.stanford_cars_dim = 224
-    self.cub200_dim = 224
-
     self._set_num_classes(dataset_name)
     
-    if dataset_name != 'ImageNet2012':
-      # Set idx with dataset_name
-      split_idxs_root = os.path.join(split_idxs_root, dataset_name)
-      if not os.path.exists(split_idxs_root):
-        os.makedirs(split_idxs_root)
+    # Set idx with dataset_name
+    split_idxs_root = os.path.join(split_idxs_root, dataset_name)
+    if not os.path.exists(split_idxs_root):
+      os.makedirs(split_idxs_root)
 
-      if split_idxs_root and val_split:
-        self.split_idxs_root = self._build_split_idx_root(split_idxs_root,
-                                                          dataset_name)
-      else:
-        self.split_idxs_root = None
+    if split_idxs_root and val_split:
+      self.split_idxs_root = self._build_split_idx_root(split_idxs_root,
+                                                        dataset_name)
+    else:
+      self.split_idxs_root = None
     
     # Create datasets
     self.datasets = self._build_datasets()
@@ -61,14 +50,6 @@ class DataHandler:
       self.num_classes = 100
     elif dataset_name == 'TinyImageNet':
       self.num_classes = 200
-    elif dataset_name == 'ImageNet2012':
-      self.num_classes = 1000
-    elif dataset_name == 'CUB200':
-      self.num_classes = 200
-    elif dataset_name == 'StanfordCars':
-      self.num_classes = 196
-    elif dataset_name == 'FashionMNIST':
-      self.num_classes = 10
 
   def get_transform(self, dataset_key=None):
     """Build dataset transform."""
@@ -130,33 +111,7 @@ class DataHandler:
       dataset_dict = tinyimagenet_handler.create_datasets(self.data_root,
                                                           self.val_split,
                                                           self.split_idxs_root)
-    elif self.dataset_name.lower() == 'imagenet2012':
-      dataset_dict = imagenet2012_handler.create_datasets(
-          self.data_root,
-          size=self.imagenet_dim,
-          test_split=self.test_split,
-          val_split=self.val_split,
-      )
-    elif self.dataset_name.lower() == 'stanfordcars':
-      dataset_dict = stanford_cars_handler.create_datasets(
-          self.data_root,
-          size=self.stanford_cars_dim,
-          val_split=self.val_split,
-          split_idxs_root=self.split_idxs_root
-      )
-    elif self.dataset_name.lower() == 'cub200':
-      dataset_dict = cub200_handler.create_datasets(
-          self.data_root,
-          size=self.cub200_dim,
-          val_split=self.val_split,
-          split_idxs_root=self.split_idxs_root
-      )
-    elif self.dataset_name.lower() == 'fashionmnist':
-      dataset_dict = fashion_mnist_handler.create_datasets(
-          self.data_root,
-          val_split=self.val_split,
-          split_idxs_root=self.split_idxs_root
-      )
+    
     return dataset_dict
 
   def build_loader(self,
