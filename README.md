@@ -2,7 +2,7 @@
 
 ---
 
-This repo provides code from the Improving Anytime Prediction with Parallel Cascaded Networks and a Temporal-Difference Loss [paper](https://arxiv.org/abs/2102.09808). 
+This repo provides code for "Improving Anytime Prediction with Parallel Cascaded Networks and a Temporal-Difference Loss" [paper](https://arxiv.org/abs/2102.09808). 
 
 ---
 
