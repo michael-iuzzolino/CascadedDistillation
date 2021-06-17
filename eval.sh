@@ -26,7 +26,7 @@ KEEP_LOGITS=true
 FORCE_OVERWRITE=false
 DEBUG=false
 
-cmd=( python analyze.py )   # create array with one element
+cmd=( python eval.py )   # create array with one element
 cmd+=( --device $DEVICE )
 cmd+=( --dataset_root $DATASET_ROOT )
 cmd+=( --dataset_name $DATASET_NAME )
