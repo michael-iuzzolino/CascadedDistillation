@@ -21,7 +21,8 @@ N_TIMESTEPS=70  # Used for EWS kernel only
 
 DEVICE=0
 KEEP_LOGITS=true
-FORCE_OVERWRITE=false
+KEEP_EMBEDDINGS=true
+FORCE_OVERWRITE=true
 DEBUG=false
 
 cmd=( python eval.py )   # create array with one element
@@ -41,6 +42,7 @@ cmd+=( --noise_var $NOISE_VAR )
 cmd+=( --n_timesteps $N_TIMESTEPS )
 
 ${KEEP_LOGITS} && cmd+=( --keep_logits )
+${KEEP_EMBEDDINGS} && cmd+=( --keep_embeddings )
 ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
 ${FORCE_OVERWRITE} && cmd+=( --force_overwrite ) && echo "FORCE OVERWRITE"
 

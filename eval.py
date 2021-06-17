@@ -122,6 +122,8 @@ def setup_args():
                       help="save_freq")
   parser.add_argument("--keep_logits", action="store_true", default=False,
                       help="Keep logits")
+  parser.add_argument("--keep_embeddings", action="store_true", default=False,
+                      help="Keep embeddings")
   parser.add_argument("--debug", action="store_true", default=False,
                       help="Debug mode")
   parser.add_argument("--force_overwrite", action="store_true", default=False,
@@ -196,7 +198,7 @@ def compute_output_representations(logits, y):
       "target_confidence": target_confs,
       "prediction_confidence": pred_confs,
   }
-  
+    
   for k, v in output_reps.items():
     output_reps[k] = v.cpu()
   return output_reps
@@ -245,10 +247,16 @@ def main(args):
     if not os.path.exists(output_rep_root):
       os.makedirs(output_rep_root)
     
-    basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}.pt"
-    output_rep_path = os.path.join(output_rep_root, basename)
+    rep_basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}.pt"
+    output_rep_path = os.path.join(output_rep_root, rep_basename)
+    
+    embed_basename = f"emeddings__{args.dataset_key}__{args.tdl_mode}.npy"
+    output_embeddings_path = os.path.join(output_rep_root, embed_basename)
 
     if os.path.exists(output_rep_path) and not args.force_overwrite:
+      continue
+
+    if os.path.exists(output_embeddings_path) and not args.force_overwrite:
       continue
     
     exp_args_path = os.path.join(load_exp_path, "args.json")
@@ -349,6 +357,7 @@ def main(args):
                                           cascaded=args.cascaded,
                                           flags=args,
                                           keep_logits=args.keep_logits,
+                                          keep_embeddings=args.keep_embeddings,
                                           tau_handler=tau_handler)
 
     criterion = losses.categorical_cross_entropy
@@ -365,13 +374,19 @@ def main(args):
       final_mean_test_acc = test_acc[-1]
     print(f"Test Acc: {final_mean_test_acc*100:0.2f}%")
 
-    logits = logged_data["logits"]
-    y = logged_data["y"].to(logits.device)
+    if args.keep_logits:
+      logits = logged_data["logits"]
+      y = logged_data["y"].to(logits.device)
+      output_reps = compute_output_representations(logits, y)
 
-    output_reps = compute_output_representations(logits, y)
-
-    print(f"Saving output representations to {output_rep_path}")
-    torch.save(output_reps, output_rep_path)
+      print(f"Saving output representations to {output_rep_path}")
+      torch.save(output_reps, output_rep_path)
+    
+    if args.keep_embeddings:
+      embeddings = logged_data["embeddings"].cpu().detach().numpy()
+      embeddings = embeddings.astype(np.float32)
+      print(f"Saving embeddings to {output_embeddings_path}")
+      np.save(output_embeddings_path, embeddings)
 
     
 if __name__ == "__main__":

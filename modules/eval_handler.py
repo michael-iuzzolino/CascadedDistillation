@@ -21,6 +21,7 @@ class SequentialEvalLoop:
     batch_logits = []
     batch_embeddings = []
     ys = []
+    global embedding
     sample_count = 0
 
     # Embedding hook
@@ -30,7 +31,6 @@ class SequentialEvalLoop:
     _ = net.fc.register_forward_hook(embedding_hook_fn)
 
     for batch_i, (data, targets) in enumerate(loader):
-      
       if self.verbose:
         sys.stdout.write(f"\rBatch {batch_i+1}/{len(loader)}")
         sys.stdout.flush()
@@ -48,8 +48,10 @@ class SequentialEvalLoop:
 
       if self.keep_logits:
         batch_logits.append(logits)
-        batch_embeddings.append(embedding.cpu())
         ys.append(targets.cpu())
+          
+      if self.keep_embeddings:
+        batch_embeddings.append(embedding.cpu())
 
       # Compute loss
       loss = criterion(logits, y)
@@ -64,25 +66,26 @@ class SequentialEvalLoop:
       batch_correct.append(n_correct)
     batch_accs = np.sum(batch_correct) / float(sample_count)
     
+    logged_data = {}
     if self.keep_logits:
-      logged_data = {
-          "logits": torch.cat(batch_logits),
-          "embeddings": torch.cat(batch_embeddings),
-          "y": torch.cat(ys),
-      }
-      return batch_losses, batch_accs, logged_data
-    else:
-      return batch_losses, batch_accs
+      logged_data["logits"] = torch.cat(batch_logits)
+      logged_data["y"] = torch.cat(ys)
+          
+    if self.keep_embeddings:
+      logged_data["embeddings"] = torch.cat(batch_embeddings)
+      
+    return batch_losses, batch_accs, logged_data
     
     
 class CascadedEvalLoop(object):
   """Evaluation loop for cascaded model."""
 
   def __init__(self, n_timesteps, num_classes, 
-               keep_logits=False, verbose=False):
+               keep_logits=False, keep_embeddings=False, verbose=False):
     self.n_timesteps = n_timesteps
     self.num_classes = num_classes
     self.keep_logits = keep_logits
+    self.keep_embeddings = keep_embeddings
     self.verbose = verbose
 
   def __call__(self, net, loader, criterion, epoch_i, device):
@@ -132,6 +135,8 @@ class CascadedEvalLoop(object):
         
         if self.keep_logits:
           timestep_logits.append(logits_t)
+          
+        if self.keep_embeddings:
           global embedding
           timestep_embeddings.append(embedding)
 
@@ -157,7 +162,8 @@ class CascadedEvalLoop(object):
         # stack into shape=(time, batch, n_classes)
         timestep_logits = torch.stack(timestep_logits)
         batch_logits.append(timestep_logits)
-        
+      
+      if self.keep_embeddings:
         timestep_embeddings = torch.stack(timestep_embeddings)
         batch_embeddings.append(timestep_embeddings)
 
@@ -167,28 +173,41 @@ class CascadedEvalLoop(object):
     batch_accs = batch_correct.cpu().detach().numpy() / float(sample_count)
 
     # Compute loss and accuracy
+    logged_data = {}
     if self.keep_logits:
       # concat over batch dim into shape=(time, batch, n_classes)
       batch_logits = torch.cat(batch_logits, dim=1)
-      batch_embeddings = torch.cat(batch_embeddings, dim=1)
       ys = torch.cat(ys)
-      logged_data = {
-          "logits": batch_logits,
-          "embeddings": batch_embeddings,
-          "y": ys,
-      }
-      return batch_losses, batch_accs, logged_data
-    else:
-      return batch_losses, batch_accs
-
+      logged_data["logits"] = batch_logits
+      logged_data["y"] = ys
+    
+    if self.keep_embeddings:
+      # concat over batch dim into shape=(time, batch, n_features, spatial_dim)
+      batch_embeddings = torch.cat(batch_embeddings, dim=1)
+      logged_data["embeddings"] = batch_embeddings
+      
+    return batch_losses, batch_accs, logged_data
+    
 
 def get_eval_loop(n_timesteps, num_classes, cascaded, flags,
-                  keep_logits=False, verbose=False, tau_handler=None):
+                  keep_logits=False, keep_embeddings=False, 
+                  verbose=False, tau_handler=None):
   """Retrieve sequential or cascaded eval function."""
   if flags.train_mode == "baseline":
-    eval_fxn = SequentialEvalLoop(num_classes, keep_logits, verbose)
+    eval_fxn = SequentialEvalLoop(num_classes, 
+                                  keep_logits, 
+                                  keep_embeddings, 
+                                  verbose)
   elif flags.train_mode == "cascaded":
-    eval_fxn = CascadedEvalLoop(n_timesteps, num_classes, keep_logits, verbose)
+    eval_fxn = CascadedEvalLoop(n_timesteps, 
+                                num_classes, 
+                                keep_logits, 
+                                keep_embeddings, 
+                                verbose)
   elif flags.train_mode == "cascaded_seq":
-    eval_fxn = CascadedEvalLoop(n_timesteps, num_classes, keep_logits, verbose)
+    eval_fxn = CascadedEvalLoop(n_timesteps, 
+                                num_classes, 
+                                keep_logits, 
+                                keep_embeddings, 
+                                verbose)
   return eval_fxn
