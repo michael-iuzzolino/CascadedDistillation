@@ -45,9 +45,6 @@ class SequentialTrainingScheme:
       # Compute gradients
       loss.backward()
 
-      # Weight decay
-      # model_utils.apply_weight_decay(net, self.flags.weight_decay)
-
       # Take optimization step
       optimizer.step()
 
@@ -162,9 +159,6 @@ class CascadedTrainingScheme(object):
       
       # Compute gradients
       loss.backward()
-
-      # Weight decay
-      # model_utils.apply_weight_decay(net, self.flags.weight_decay)
 
       # Take optimization step
       optimizer.step()

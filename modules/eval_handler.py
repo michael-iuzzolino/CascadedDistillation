@@ -51,10 +51,6 @@ class SequentialEvalLoop:
         batch_embeddings.append(embedding.cpu())
         ys.append(targets.cpu())
 
-      # Determine device placement
-#       targets = targets.to(logits.device, non_blocking=True)
-#       y = y.to(logits.device, non_blocking=True)
-
       # Compute loss
       loss = criterion(logits, y)
       batch_losses.append(loss.item())
@@ -138,10 +134,6 @@ class CascadedEvalLoop(object):
           timestep_logits.append(logits_t)
           global embedding
           timestep_embeddings.append(embedding)
-
-        # Determine device placement
-#         targets = targets.to(logits_t.device, non_blocking=True)
-#         y = y.to(logits_t.device, non_blocking=True)
 
         # Compute loss
         loss_i = criterion(logits_t, y)
