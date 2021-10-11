@@ -11,7 +11,7 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
 CASCADED_SCHEME="parallel"  # parallel, serial (used for train_mode=cascaded_seq)
-DATASET_KEY="val"  # used for train_mode=cascaded_seq
+DATASET_KEY="test"  # used for train_mode=cascaded_seq
 BATCH_SIZE=128
 
 TDL_MODE="OSD"  # OSD, EWS, noise
@@ -19,7 +19,7 @@ TDL_ALPHA=0.9
 NOISE_VAR=0.0  # Used for noise kernel only
 N_TIMESTEPS=70  # Used for EWS kernel only
 
-DEVICE=1
+DEVICE=0
 KEEP_LOGITS=true
 KEEP_EMBEDDINGS=true
 FORCE_OVERWRITE=true

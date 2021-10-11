@@ -71,23 +71,33 @@ class ResNet(nn.Module):
     self.res_layer_count += 1
 
     # Residual Layers
-    self.layer1 = self._make_layer(block, 64, layers[0], **kwargs)
-    self.layer2 = self._make_layer(block, 128, layers[1], stride=2, **kwargs)
-    self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
-    self.layer4 = self._make_layer(block, 512, layers[3], stride=2, 
-                                   final_layer=True, **kwargs)
-    self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
+    stride = 1
+    filters = 64
+    self.layers = []
+    for i, layer in enumerate(layers, 1):
+      layer_i = self._make_layer(block, filters, layer, stride=stride, **kwargs)
+      self.add_module(f"layer{i}", layer_i)
+      self.layers.append(layer_i)
+      stride = 2
+      filters *= 2
+    
+    filters //= 2
+#     self.layer1 = self._make_layer(block, 64, layers[0], stride=1, **kwargs)
+#     self.layer2 = self._make_layer(block, 128, layers[1], stride=2, **kwargs)
+#     self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
+#     self.layer4 = self._make_layer(block, 512, layers[3], stride=2, **kwargs)
+#     self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
     
     if self._multiple_fcs:
       fcs = []
       for i in range(self.timesteps):
-        fc_i = InternalClassifier(n_channels=512, 
+        fc_i = InternalClassifier(n_channels=filters, 
                                   num_classes=num_classes,
                                   block_expansion=block.expansion)
         fcs.append(fc_i)
       self.fcs = nn.ModuleList(fcs)
     else:
-      self.fc = InternalClassifier(n_channels=512, 
+      self.fc = InternalClassifier(n_channels=filters, 
                                    num_classes=num_classes,
                                    block_expansion=block.expansion)
     
@@ -113,8 +123,7 @@ class ResNet(nn.Module):
 
     return norm_layer_op
 
-  def _make_layer(self, block, planes, blocks, 
-                  stride=1, final_layer=False, **kwargs):
+  def _make_layer(self, block, planes, blocks, stride=1, **kwargs):
     tdl_mode = kwargs.get("tdl_mode", "OSD")
     tdl_alpha = kwargs.get("tdl_alpha", 0.0)
     noise_var = kwargs.get("noise_var", 0.0)
@@ -276,6 +285,11 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
       model = model_utils.load_model(model, kwargs)
   
   return model
+
+
+def resnet10(pretrained=False, **kwargs):
+  return make_resnet("resnet10", res_layers.BasicBlock, [2, 2],
+                     pretrained, **kwargs)
 
 
 def resnet18(pretrained=False, **kwargs):

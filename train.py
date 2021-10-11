@@ -6,6 +6,7 @@ import numpy as np
 import os
 import sys
 import torch
+import json
 from collections import defaultdict, OrderedDict
 from datasets.dataset_handler import DataHandler
 from models import densenet
@@ -30,6 +31,17 @@ def setup_args():
   parser.add_argument("--experiment_name", type=str, 
                       required=True,
                       help="Experiment name")
+  
+  
+  
+  # Distillation
+  parser.add_argument("--distillation", action="store_true", default=False,
+                      help="Use distillation")
+  parser.add_argument("--distillation_alpha", type=float, default=0.5,
+                      help="Distillation alpha: 0.5 default")
+  parser.add_argument("--teacher_dir", type=str, 
+                      default="",
+                      help="Teacher network root")
   
   # Dataset
   parser.add_argument("--dataset_root", type=str, required=True,
@@ -127,6 +139,11 @@ def setup_args():
   
   args = parser.parse_args()
   
+  # Ensure teacher_dir set if distillation mode enabled
+  if args.distillation and not args.teacher_dir:
+    print("Distillation enabled but teacher_dir not set!")
+    exit()
+  
   # Set debug condition
   if args.debug:
     args.n_epochs = 5
@@ -160,6 +177,9 @@ def setup_output_dir(args, save_args_to_root=True):
   out_basename += f",lr_{args.learning_rate}"
   out_basename += f",wd_{args.weight_decay}"
   out_basename += f",seed_{args.random_seed}"
+  
+  if args.distillation:
+    out_basename += f",distillation,alpha_{args.distillation_alpha}"
   
   if args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights:
     out_basename += f",pretrained_weights"
@@ -211,6 +231,68 @@ def setup_dataset(args):
   print("Data handler loaded.")
   
   return data_handler, loaders
+
+
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+    
+
+def setup_teacher_model(teacher_dir, data_handler, device, args):
+  teacher_args_path = os.path.join(teacher_dir, "args.json")
+  with open(teacher_args_path, "r") as infile:
+    teacher_args = dotdict(json.load(infile))
+  
+  # Model
+  model_dict = {
+      "seed": args.random_seed,
+      "num_classes": data_handler.num_classes,
+      "pretrained": False,
+      "train_mode": teacher_args.train_mode,
+      "cascaded": teacher_args.cascaded,
+      "cascaded_scheme": teacher_args.cascaded_scheme,
+      "multiple_fcs": teacher_args.multiple_fcs,
+      "lambda_val": teacher_args.lambda_val,
+      "tdl_alpha": teacher_args.tdl_alpha,
+      "tdl_mode": teacher_args.tdl_mode,
+      "noise_var": teacher_args.noise_var,
+      "bn_opts": {
+          "temporal_affine": teacher_args.bn_time_affine,
+          "temporal_stats": teacher_args.bn_time_stats,
+      },
+      "imagenet": teacher_args.dataset_name == "ImageNet2012",
+      "imagenet_pretrained": False, # args.dataset_name == "ImageNet2012",
+      "n_channels": 1 if teacher_args.dataset_name == "FashionMNIST" else 3
+  }
+  
+  # Model init op
+  if teacher_args.model_key.startswith("resnet"):
+    model_init_op = resnet
+  elif teacher_args.model_key.startswith("densenet"):
+    model_init_op = densenet
+
+  # Initialize net
+  print("Instantiating teacher model...")
+  teacher_net = model_init_op.__dict__[teacher_args.model_key](**model_dict).to(device)
+  
+  # Load ckpt
+  ckpt_path = os.path.join(teacher_dir, "ckpts", "ckpt__epoch_0149.pt")
+  assert os.path.exists(ckpt_path), f"{ckpt_path} does not exist."
+  model_state_dict = torch.load(ckpt_path)["model"]
+  
+  # Fix state dict
+  fixed_dict = {}
+  for key, val in model_state_dict.items():
+    if key == "fc.weight" or key == "fc.bias":
+      key = f"fc.{key}"
+    fixed_dict[key] = val
+  teacher_net.load_state_dict(fixed_dict)
+  
+  print("Teacher Model instantiated.")
+  teacher_net = teacher_net.eval()
+  return teacher_net
 
 
 def setup_model(data_handler, device, save_root, args):
@@ -378,6 +460,9 @@ def main(args):
   # Setup model
   net = setup_model(data_handler, device, save_root, args)
   
+  if args.distillation:
+    teacher_net = setup_teacher_model(args.teacher_dir, data_handler, device, args)
+    
   # Condition model and get handler opts
   opts = condition_model(save_root, args)
   
@@ -428,12 +513,17 @@ def main(args):
     for epoch_i in range(args.n_epochs):
       print(f"\nEpoch {epoch_i+1}/{args.n_epochs}")
       # Train net
-      train_loss, train_acc = train_fxn(net, 
-                                        loaders["train"], 
-                                        criterion, 
-                                        epoch_i,
-                                        optimizer, 
-                                        device)
+      train_params = {
+          "net": net, 
+          "loader": loaders["train"], 
+          "criterion": criterion, 
+          "epoch_i": epoch_i, 
+          "optimizer": optimizer, 
+          "device": device,
+      }
+      if args.distillation:
+        train_params["teacher_net"] = teacher_net
+      train_loss, train_acc = train_fxn(**train_params)
 
       # Log train metrics
       metrics["train"]["loss"].append((epoch_i, train_loss))

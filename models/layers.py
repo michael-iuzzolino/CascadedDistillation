@@ -14,7 +14,6 @@ class HeadLayer(nn.Module):
     self.layer_i = layer_i
     self.cascaded = kwargs["cascaded"]
     self.time_bn = kwargs.get("time_bn", kwargs["cascaded"])
-    self.num_classes = kwargs.get("num_classes", -1)
 
     # Set number of input channels
     inplanes = kwargs.get("n_channels", 3)

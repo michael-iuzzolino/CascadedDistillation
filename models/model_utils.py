@@ -18,7 +18,7 @@ def load_model(net, kwargs):
   pretrained_path = kwargs.get("pretrained_path", False)
   assert pretrained_path, "Could not find pretrained_path!"
   # print(f"Loading model from {pretrained_path}")
-  state_dict = torch.load(pretrained_path)["model"]
+  state_dict = torch.load(pretrained_path, map_location=torch.device('cpu'))["model"]
   if kwargs.get("train_mode", None) == "cascaded_seq":
     fixed_dict = OrderedDict()
     for k, v in state_dict.items():
