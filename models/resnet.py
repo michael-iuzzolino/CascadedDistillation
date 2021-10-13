@@ -35,7 +35,7 @@ _MODEL_URLS = {
 class ResNet(nn.Module):
   """Resnet base class."""
 
-  def __init__(self, name, block, layers, num_classes, **kwargs):
+  def __init__(self, name, block, layers, filters, num_classes, **kwargs):
     """Initialize resnet."""
     super(ResNet, self).__init__()
     self.name = name
@@ -60,7 +60,7 @@ class ResNet(nn.Module):
 
     # Head layer
     self.res_layer_count = 0
-    self.inplanes = 64
+    self.inplanes = filters[0]
     self.layer0 = res_layers.HeadLayer(self.res_layer_count, 
                                        self.inplanes,
                                        self._norm_layer_op,
@@ -71,33 +71,25 @@ class ResNet(nn.Module):
     self.res_layer_count += 1
 
     # Residual Layers
-    stride = 1
-    filters = 64
     self.layers = []
+    stride = 1
     for i, layer in enumerate(layers, 1):
-      layer_i = self._make_layer(block, filters, layer, stride=stride, **kwargs)
+      filter_i = filters[i-1]
+      layer_i = self._make_layer(block, filter_i, layer, stride=stride, **kwargs)
       self.add_module(f"layer{i}", layer_i)
       self.layers.append(layer_i)
       stride = 2
-      filters *= 2
-    
-    filters //= 2
-#     self.layer1 = self._make_layer(block, 64, layers[0], stride=1, **kwargs)
-#     self.layer2 = self._make_layer(block, 128, layers[1], stride=2, **kwargs)
-#     self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
-#     self.layer4 = self._make_layer(block, 512, layers[3], stride=2, **kwargs)
-#     self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
     
     if self._multiple_fcs:
       fcs = []
       for i in range(self.timesteps):
-        fc_i = InternalClassifier(n_channels=filters, 
+        fc_i = InternalClassifier(n_channels=filter_i, 
                                   num_classes=num_classes,
                                   block_expansion=block.expansion)
         fcs.append(fc_i)
       self.fcs = nn.ModuleList(fcs)
     else:
-      self.fc = InternalClassifier(n_channels=filters, 
+      self.fc = InternalClassifier(n_channels=filter_i, 
                                    num_classes=num_classes,
                                    block_expansion=block.expansion)
     
@@ -244,7 +236,7 @@ class ResNet(nn.Module):
     return self._forward(x, t)
     
     
-def make_resnet(arch, block, layers, pretrained, **kwargs):
+def make_resnet(arch, block, layers, filters, pretrained, **kwargs):
   if kwargs.get("imagenet_pretrained", False):
     assert arch in _MODEL_URLS, f"{arch} not found in _MODEL_URLS"
     
@@ -253,7 +245,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     kwargs["num_classes"] = 1000
     
     # Load model
-    model = ResNet(arch, block, layers, **kwargs)
+    model = ResNet(arch, block, layers, filters, **kwargs)
     
     # Load imagenet state dict
     state_dict = load_state_dict_from_url(_MODEL_URLS[arch])
@@ -280,7 +272,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, num_classes)
   else: 
-    model = ResNet(arch, block, layers, **kwargs)
+    model = ResNet(arch, block, layers, filters, **kwargs)
     if pretrained:
       model = model_utils.load_model(model, kwargs)
   
@@ -289,29 +281,33 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
 
 def resnet10(pretrained=False, **kwargs):
   return make_resnet("resnet10", res_layers.BasicBlock, [2, 2],
-                     pretrained, **kwargs)
+                     [64, 128], pretrained, **kwargs)
 
+
+def resnet18_small(pretrained=False, **kwargs):
+  return make_resnet("resnet18", res_layers.BasicBlock, [2, 2, 2, 2], 
+                     [32, 32, 64, 64], pretrained, **kwargs)
 
 def resnet18(pretrained=False, **kwargs):
-  return make_resnet("resnet18", res_layers.BasicBlock, [2, 2, 2, 2],
-                     pretrained, **kwargs)
+  return make_resnet("resnet18", res_layers.BasicBlock, [2, 2, 2, 2], 
+                     [64, 128, 256, 512], pretrained, **kwargs)
 
 
 def resnet34(pretrained=False, **kwargs):
   return make_resnet("resnet34", res_layers.BasicBlock, [3, 4, 6, 3],
-                     pretrained, **kwargs)
+                     [64, 128, 256, 512], pretrained, **kwargs)
 
 
 def resnet50(pretrained=False, **kwargs):
   return make_resnet("resnet50", res_layers.Bottleneck, [3, 4, 6, 3],
-                     pretrained, **kwargs)
+                     [64, 128, 256, 512], pretrained, **kwargs)
 
 
 def resnet101(pretrained=False, **kwargs):
   return make_resnet("resnet101", res_layers.Bottleneck, [3, 4, 23, 3],
-                     pretrained, **kwargs)
+                     [64, 128, 256, 512], pretrained, **kwargs)
 
 
 def resnet152(pretrained=False, **kwargs):
   return make_resnet("resnet152", res_layers.Bottleneck, [3, 8, 36, 3],
-                     pretrained, **kwargs)
+                     [64, 128, 256, 512], pretrained, **kwargs)

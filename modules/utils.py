@@ -64,3 +64,7 @@ def save_args(args, exp_dir):
   with open(args_savepath, "w") as outfile:
     json.dump(vars(args), outfile, sort_keys=True, indent=4)
   print(f"Saved to {args_savepath}")
+  
+  
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

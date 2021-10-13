@@ -5,8 +5,8 @@ EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
 SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
 
 # Experiment name to evaluate
-MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="ImageNet2012"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+MODEL="resnet10"  # resnet10, resnet18, resnet34, resnet50, densenet_cifar
+DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
@@ -27,6 +27,7 @@ DEBUG=false
 
 cmd=( python eval.py )   # create array with one element
 cmd+=( --device $DEVICE )
+cmd+=( --model_key $MODEL )
 cmd+=( --dataset_root $DATASET_ROOT )
 cmd+=( --dataset_name $DATASET_NAME )
 cmd+=( --dataset_key $DATASET_KEY )

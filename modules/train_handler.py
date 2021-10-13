@@ -1,10 +1,12 @@
 """Training function handler for sequential or cascaded."""
 import torch
+import torch.nn as nn
 import sys
 import numpy as np
 import torch.nn.functional as F
 from models import model_utils
-
+from modules import losses
+    
 
 class SequentialTrainingScheme:
   """Sequential Training Scheme."""
@@ -23,21 +25,20 @@ class SequentialTrainingScheme:
     for batch_i, (data, targets) in enumerate(loader):
       if self.flags.debug and batch_i > 1:
         break
-      # One-hot-ify targets
-      y = torch.eye(self.num_classes)[targets]
 
       # Determine device placement
       data = data.to(device, non_blocking=True)
+      targets = targets.to(device, non_blocking=True)
+      
+      # One-hot-ify targets
+      y = torch.eye(self.num_classes)[targets]
+      y = y.to(device, non_blocking=True)
 
       # Zero gradients
       optimizer.zero_grad()
 
       # Run forward pass
       logits = net(data, t=0)
-
-      # Determine device placement
-      targets = targets.to(logits.device, non_blocking=True)
-      y = y.to(logits.device, non_blocking=True)
 
       # Compute loss
       loss = criterion(logits, y)
@@ -68,68 +69,75 @@ class SequentialTrainingScheme:
     return batch_losses, batch_accs
 
   
-class TD_Loss(object):
-  def __init__(self, n_timesteps, tau_handler, flags):
-    self.n_timesteps = n_timesteps
-    self.tau_handler = tau_handler
+class DistillationSequentialTrainingScheme:
+  """Sequential Training Scheme.
+  See: https://github.com/peterliht/knowledge-distillation-pytorch/blob/master/train.py
+  """
+
+  def __init__(self, num_classes, flags):
+    """Initialize sequential training handler."""
+    self.num_classes = num_classes
     self.flags = flags
-  
-  def __call__(self, criterion, predicted_logits, y, targets):
-    loss = 0
-    timestep_losses = torch.zeros(self.n_timesteps)
-    timestep_accs = torch.zeros(self.n_timesteps)
 
-    for t in range(len(predicted_logits)):
-      logit_i = predicted_logits[t]
+  def __call__(self, net, loader, criterion, epoch_i, optimizer, device, teacher_net):
+    # Flag model for training
+    net.train()
 
-      # First term
-      sum_term = torch.zeros_like(logit_i)
-      t_timesteps = list(range(t+1, self.n_timesteps))
-      for i, n in enumerate(t_timesteps, 1):
-        logit_k = predicted_logits[n].detach().clone()
-        softmax_i = F.softmax(logit_k, dim=1)
-        sum_term = sum_term + self.flags.lambda_val**(i - 1) * softmax_i
+    batch_losses = []
+    batch_accs = []
+    for batch_i, (data, targets) in enumerate(loader):
+      if self.flags.debug and batch_i > 1:
+        break
 
-      # Final terms
-      term_1 = (1 - self.flags.lambda_val) * sum_term
-      term_2 = self.flags.lambda_val**(self.n_timesteps - t - 1) * y
-      softmax_j = term_1 + term_2
+      # Determine device placement
+      data = data.to(device, non_blocking=True)
+      targets = targets.to(device, non_blocking=True)
+      
+      # Get teacher preds
+      with torch.no_grad():
+        for t in range(teacher_net.timesteps):
+          teacher_logits = teacher_net(data, t)
+      teacher_targets = F.softmax(teacher_logits, dim=1).argmax(dim=1).long()
+      teacher_y = torch.eye(self.num_classes)[teacher_targets].long()
+      teacher_y = teacher_y.to(device, non_blocking=True)
 
+      # Zero gradients
+      optimizer.zero_grad()
+
+      # Run forward pass
+      logits = net(data, t=0)
+
+      # Determine device placement
+      
       # Compute loss
-      loss_i = criterion(pred_logits=logit_i, y_true_softmax=softmax_j)
+      loss = criterion(logits, targets, teacher_y)
 
-      # Tau weighted
-      if self.flags.tau_weighted_loss and t < self.n_timesteps - 1:
-        tau_i = self.tau_handler(t-1, epoch_i)
-        loss_i = tau_i * loss_i
+      # Compute gradients
+      loss.backward()
 
-      # Aggregate loss
-      if self.flags.tdl_mode == "EWS":
-        loss = loss + loss_i
-      else:
-        # Ignore first timestep loss (all 0's output)
-        if t > 0:
-          loss = loss + loss_i
-
-      # Log loss item
-      timestep_losses[t] = loss_i.item()
+      # Take optimization step
+      optimizer.step()
 
       # Predictions
-      softmax_i = F.softmax(logit_i, dim=1)
-      y_pred = torch.argmax(softmax_i, dim=1)
+      softmax_output = F.softmax(logits, dim=1)
+      y_pred = torch.argmax(softmax_output, dim=1)
 
-      # Updates running accuracy statistics
+      # Updates batch accs
       n_correct = torch.eq(targets, y_pred).sum()
       acc_i = n_correct / float(targets.shape[0])
-      timestep_accs[t] = acc_i
+      batch_accs.append(acc_i.item())
 
-    # Normalize loss
-    if self.flags.normalize_loss:
-      loss = loss / float(self.n_timesteps)
-    
-    return loss, timestep_losses, timestep_accs
+      # Update batch loss
+      batch_losses.append(loss.item())
+
+      sys.stdout.write((f"\rBatch {batch_i+1}/{len(loader)} -- "
+                        f"Batch Loss: {np.mean(batch_losses):0.6f} -- "
+                        f"Batch Acc: {np.mean(batch_accs)*100:0.2f}%"))
+      sys.stdout.flush()
+
+    return batch_losses, batch_accs
+
   
-
 class DistillationCascadedTrainingScheme(object):
   """Cascaded training schemes.
   
@@ -143,11 +151,19 @@ class DistillationCascadedTrainingScheme(object):
     self.tau_handler = tau_handler
     self.flags = flags
     
-    self._target_criterion = TD_Loss(n_timesteps, tau_handler, flags)
-    self._teacher_criterion = TD_Loss(n_timesteps, tau_handler, flags)
+    self._target_criterion = losses.TD_Loss(n_timesteps, tau_handler, flags)
+    self._teacher_criterion = losses.TD_Loss(
+      n_timesteps, 
+      tau_handler, 
+      flags, 
+      apply_temp_scaling=True
+    )
+    self._criterion = losses.categorical_cross_entropy
   
-  def _compute_distillation_loss(self, target, teacher, alpha):
-    loss = alpha * teacher + (1 - alpha) * target
+  def _compute_distillation_loss(self, target, teacher, alpha, temperature):
+    teacher_term = teacher * (alpha * temperature * temperature)
+    target_term = (1 - alpha) * target
+    loss = teacher_term + target_term
     return loss
     
   def __call__(self, net, loader, criterion, epoch_i, optimizer, device, teacher_net):
@@ -187,7 +203,7 @@ class DistillationCascadedTrainingScheme(object):
       
       # Compute loss 1
       target_loss, target_losses, target_accs = self._target_criterion(
-        criterion, 
+        self._criterion, 
         predicted_logits,
         y, 
         targets
@@ -195,7 +211,7 @@ class DistillationCascadedTrainingScheme(object):
       
       # Compute distillation loss
       teacher_loss, teacher_losses, teacher_accs = self._teacher_criterion(
-        criterion, 
+        self._criterion, 
         predicted_logits, 
         teacher_y, 
         teacher_targets
@@ -205,7 +221,8 @@ class DistillationCascadedTrainingScheme(object):
       loss = self._compute_distillation_loss(
         target_loss, 
         teacher_loss, 
-        alpha=self.flags.distillation_alpha
+        alpha=self.flags.distillation_alpha, 
+        temperature=self.flags.distillation_temp
       )
       
 #       timestep_losses = [
@@ -356,10 +373,22 @@ class CascadedTrainingScheme(object):
 
 def get_train_loop(n_timesteps, num_classes, flags, tau_handler=None):
   """Retrieve sequential or cascaded training function."""
-  if flags.train_mode == "baseline":
-    train_fxn = SequentialTrainingScheme(num_classes, flags)
-  elif flags.train_mode == "cascaded" and flags.distillation:
-    train_fxn = DistillationCascadedTrainingScheme(n_timesteps, num_classes, flags, tau_handler)
-  elif flags.train_mode == "cascaded":
-    train_fxn = CascadedTrainingScheme(n_timesteps, num_classes, flags, tau_handler)
+  if flags.distillation:
+    if flags.train_mode == "baseline":
+      train_fxn = DistillationSequentialTrainingScheme(num_classes, flags)
+    elif flags.train_mode == "cascaded":
+      train_fxn = DistillationCascadedTrainingScheme(
+        n_timesteps, num_classes, flags, tau_handler
+      )
+    else:
+      raise NotImplementedError(f"{flags.train_mode} train mode not implemented")
+  else:
+    if flags.train_mode == "baseline":
+      train_fxn = SequentialTrainingScheme(num_classes, flags)
+    elif flags.train_mode == "cascaded":
+      train_fxn = CascadedTrainingScheme(
+        n_timesteps, num_classes, flags, tau_handler
+      )
+    else:
+      raise NotImplementedError(f"{flags.train_mode} train mode not implemented")
   return train_fxn

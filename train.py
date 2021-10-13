@@ -39,6 +39,8 @@ def setup_args():
                       help="Use distillation")
   parser.add_argument("--distillation_alpha", type=float, default=0.5,
                       help="Distillation alpha: 0.5 default")
+  parser.add_argument("--distillation_temperature", type=float, default=1.0,
+                      help="Distillation temp: 1.0 default")
   parser.add_argument("--teacher_dir", type=str, 
                       default="",
                       help="Teacher network root")
@@ -160,7 +162,9 @@ def setup_args():
 
 
 def get_baseline_ckpt_path(save_root, args):
-  baseline_ckpt_roots = glob.glob(f"{os.path.dirname(save_root)}/std*seed_{args.random_seed}*")
+  baseline_ckpt_roots = glob.glob(
+    f"{os.path.dirname(save_root)}/std*seed_{args.random_seed}*"
+  )
   assert len(baseline_ckpt_roots), f"No baseline for seed {args.random_seed}"
   baseline_ckpt_root = baseline_ckpt_roots[0]
   final_ckpt_path = np.sort(glob.glob(f"{baseline_ckpt_root}/ckpts/*.pt"))[-1]
@@ -275,11 +279,13 @@ def setup_teacher_model(teacher_dir, data_handler, device, args):
 
   # Initialize net
   print("Instantiating teacher model...")
-  teacher_net = model_init_op.__dict__[teacher_args.model_key](**model_dict).to(device)
+  teacher_net = model_init_op.__dict__[teacher_args.model_key](**model_dict)
+  teacher_net = teacher_net.to(device)
   
   # Load ckpt
-  ckpt_path = os.path.join(teacher_dir, "ckpts", "ckpt__epoch_0149.pt")
-  assert os.path.exists(ckpt_path), f"{ckpt_path} does not exist."
+  ckpt_dir = os.path.join(teacher_dir, "ckpts")
+  ckpt_path = np.sort(glob.glob(f"{ckpt_dir}/*epoch*.pt"))[-1]
+  print(f"Loading teacher ckpt {ckpt_path}...")
   model_state_dict = torch.load(ckpt_path)["model"]
   
   # Fix state dict
@@ -327,6 +333,10 @@ def setup_model(data_handler, device, save_root, args):
   # Initialize net
   print("Instantiating model...")
   net = model_init_op.__dict__[args.model_key](**model_dict).to(device)
+  number_parameters = utils.count_parameters(net)
+  print(f"# model parameters: {number_parameters:,}")
+  model_dict["number_parameters"] = number_parameters
+  
   print("Model instantiated.")
   
   # Compute inference costs if ic_only / SDN
@@ -371,7 +381,9 @@ def fix_dict(model_state_dict, args):
 def condition_model(save_root, args):
   # Check mode and load optimizer
   if (args.train_mode == "ic_only" 
-      or (args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights)):
+      or (args.train_mode in ["sdn", "cascaded"] 
+          and args.use_pretrained_weights)
+     ):
     baseline_ckpt_path = get_baseline_ckpt_path(save_root, args)
     assert os.path.exists(baseline_ckpt_path), (
         f"Path does not exist: {baseline_ckpt_path}")
@@ -461,27 +473,41 @@ def main(args):
   net = setup_model(data_handler, device, save_root, args)
   
   if args.distillation:
-    teacher_net = setup_teacher_model(args.teacher_dir, data_handler, device, args)
+    teacher_net = setup_teacher_model(
+      args.teacher_dir, 
+      data_handler, 
+      device, 
+      args
+    )
+    criterion = losses.DistillationLossHandler(
+      alpha=args.distillation_alpha, 
+      temp=args.distillation_temperature
+    )
+  else:
+    criterion = losses.categorical_cross_entropy
     
   # Condition model and get handler opts
   opts = condition_model(save_root, args)
   
   # Tau handler
-  tau_handler = sdn_utils.IC_tau_handler(init_tau=args.init_tau,
-                                         tau_targets=args.target_IC_inference_costs, 
-                                         epoch_asymptote=opts["tau_epoch_asymptote"],
-                                         active=opts["tau_scheduling_active"])
+  tau_handler = sdn_utils.IC_tau_handler(
+    init_tau=args.init_tau,
+    tau_targets=args.target_IC_inference_costs, 
+    epoch_asymptote=opts["tau_epoch_asymptote"],
+    active=opts["tau_scheduling_active"]
+  )
   
   # Init optimizer
-  optimizer = opts["optimizer_init_op"](net.parameters(), **opts["optimizer_dict"])
+  optimizer = opts["optimizer_init_op"](
+    net.parameters(), **opts["optimizer_dict"]
+  )
 
   # Scheduler
-  lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer,
-                                                milestones=opts["lr_schedule_milestones"],
-                                                gamma=opts["lr_schedule_gamma"])
-
-  # Criterion
-  criterion = losses.categorical_cross_entropy
+  lr_scheduler = optim.lr_scheduler.MultiStepLR(
+    optimizer,
+    milestones=opts["lr_schedule_milestones"],
+    gamma=opts["lr_schedule_gamma"]
+  )
 
 
   # train and eval functions
@@ -545,7 +571,16 @@ def main(args):
 
       if epoch_i % args.eval_freq == 0:
         # Evaluate net
-        val_loss, val_acc, _ = eval_fxn(net, loaders["val"], criterion, epoch_i, device)
+        eval_params = {
+            "net": net,
+            "loader": loaders["val"],
+            "criterion": criterion,
+            "epoch_i": epoch_i,
+            "device": device
+        }
+        if args.distillation:
+          eval_params["teacher_net"] = teacher_net
+        val_loss, val_acc, _ = eval_fxn(**eval_params)
         stdout_str += (f" -- Avg. Eval Acc: {np.mean(val_acc)*100:0.2f}%")
         # Log eval metrics
         metrics["val"]["loss"].append((epoch_i, val_loss))
@@ -564,7 +599,16 @@ def main(args):
     print(f"\nUser exited training early @ epoch {epoch_i}.")
   
   # Final validation eval
-  val_loss, val_acc, _ = eval_fxn(net, loaders["val"], criterion, epoch_i, device)
+  eval_params = {
+      "net": net,
+      "loader": loaders["val"],
+      "criterion": criterion,
+      "epoch_i": epoch_i,
+      "device": device
+  }
+  if args.distillation:
+    eval_params["teacher_net"] = teacher_net
+  val_loss, val_acc, _ = eval_fxn(**eval_params)
 
   # Log eval metrics
   metrics["val"]["loss"].append((epoch_i, val_loss))
@@ -572,7 +616,9 @@ def main(args):
 
   # Evaluate test set
   print("Evaluating test set.")
-  test_loss, test_acc, _ = eval_fxn(net, loaders["test"], criterion, epoch_i, device)
+  eval_params["loader"] = loaders["test"]
+  test_loss, test_acc, _ = eval_fxn(**eval_params)
+  
   metrics["test"]["loss"] = test_loss
   metrics["test"]["acc"] = test_acc
 
