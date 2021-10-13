@@ -142,9 +142,14 @@ def setup_args():
   args = parser.parse_args()
   
   # Ensure teacher_dir set if distillation mode enabled
-  if args.distillation and not args.teacher_dir:
-    print("Distillation enabled but teacher_dir not set!")
-    exit()
+  if args.distillation and args.teacher_dir == "":
+    distill_model_key = args.model_key
+    if "_small" in distill_model_key:
+      distill_model_key = distill_model_key.replace("_small", "")
+    dirname = f"{distill_model_key}_{args.dataset_name}"
+    args.teacher_dir = os.path.join("teacher_ckpts", dirname)
+    if not os.path.exists(args.teacher_dir):
+      print(f"Teacher ckpt does not exist @ {args.teacher_dir}")
   
   # Set debug condition
   if args.debug:
@@ -286,7 +291,7 @@ def setup_teacher_model(teacher_dir, data_handler, device, args):
   ckpt_dir = os.path.join(teacher_dir, "ckpts")
   ckpt_path = np.sort(glob.glob(f"{ckpt_dir}/*epoch*.pt"))[-1]
   print(f"Loading teacher ckpt {ckpt_path}...")
-  model_state_dict = torch.load(ckpt_path)["model"]
+  model_state_dict = torch.load(ckpt_path, map_location=device)["model"]
   
   # Fix state dict
   fixed_dict = {}
@@ -388,7 +393,7 @@ def condition_model(save_root, args):
     assert os.path.exists(baseline_ckpt_path), (
         f"Path does not exist: {baseline_ckpt_path}")
     print(f"Loading baseline for ic_only from {baseline_ckpt_path}")
-    checkpoint = torch.load(baseline_ckpt_path)
+    checkpoint = torch.load(baseline_ckpt_path, map_location="cpu")
     model_state_dict = checkpoint["model"]
     
     # Fix model dict

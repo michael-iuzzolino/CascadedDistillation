@@ -5,26 +5,23 @@ EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
 SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
 
 MODEL="resnet18_small"  # resnet10, resnet18, resnet18_small, resnet34, resnet50, densenet_cifar
-DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
-TRAIN_MODE="cascaded"  # baseline, cascaded
+TRAIN_MODE="baseline"  # baseline, cascaded
 CASCADED_SCHEME="parallel"  # serial, parallel
 MULTIPLE_FCS=false
 
 # LAMBDA_VALS # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
-LAMBDA_VALS=(0.0 0.5 1.0)
+LAMBDA_VALS=(1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
-DISTILLATION=false
+DISTILLATION=true
 DISTILLATION_ALPHAS=(0.5)
 DISTILLATION_TEMP=1.0
-# TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_cifar10/experiments/std,lr_0.1,wd_0.0005,seed_42"
-# TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_ImageNet2012/experiments/std,lr_0.01,wd_0.0005,seed_42"
-TEACHER_DIR="teacher_ckpts/resnet18_CIFAR10"
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
@@ -57,7 +54,6 @@ do
           ${DISTILLATION} && cmd+=( --distillation )
           cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
           cmd+=( --distillation_temperature $DISTILLATION_TEMP )
-          cmd+=( --teacher_dir $TEACHER_DIR )
           cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
           cmd+=( --experiment_root $EXPERIMENT_ROOT )
           cmd+=( --experiment_name $EXPERIMENT_NAME )
@@ -87,7 +83,6 @@ do
         cmd+=( --random_seed $RANDOM_SEED )
         cmd+=( --dataset_root $DATASET_ROOT )
         cmd+=( --dataset_name $DATASET_NAME )
-        cmd+=( --teacher_dir $TEACHER_DIR )
         cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
         cmd+=( --experiment_root $EXPERIMENT_ROOT )
         cmd+=( --experiment_name $EXPERIMENT_NAME )
