@@ -222,7 +222,7 @@ class DistillationCascadedTrainingScheme(object):
         target_loss, 
         teacher_loss, 
         alpha=self.flags.distillation_alpha, 
-        temperature=self.flags.distillation_temp
+        temperature=self.flags.distillation_temperature
       )
       
 #       timestep_losses = [
