@@ -23,8 +23,8 @@ DISTILLATION=true
 DISTILLATION_ALPHA=0.5
 DISTILLATION_TEMP=1.0
 # TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_cifar10/experiments/std,lr_0.1,wd_0.0005,seed_42"
-TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_ImageNet2012/experiments/std,lr_0.01,wd_0.0005,seed_42"
-TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_CIFAR10/experiments/std,lr_0.1,wd_0.0005,seed_42"
+# TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_ImageNet2012/experiments/std,lr_0.01,wd_0.0005,seed_42"
+TEACHER_DIR="teacher_ckpts/resnet18_CIFAR10"
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
