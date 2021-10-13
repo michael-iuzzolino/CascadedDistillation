@@ -45,6 +45,13 @@ for RANDOM_SEED in "${RANDOM_SEEDS[@]}"
 do
     for LAMBDA_VAL in "${LAMBDA_VALS[@]}"
     do
+      if [[ $DISTILLATION ]]
+      then
+        echo "Distillation!"
+      else
+        echo "Not distillation!"
+      fi
+      exit
       cmd=( python train.py )   # create array with one element
       cmd+=( --device $DEVICE )
       cmd+=( --random_seed $RANDOM_SEED )
