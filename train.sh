@@ -13,13 +13,13 @@ TRAIN_MODE="cascaded"  # baseline, cascaded
 CASCADED_SCHEME="parallel"  # serial, parallel
 MULTIPLE_FCS=false
 
-# LAMBDA_VALS=(1.0)  # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
-LAMBDA_VALS=(0.5) # (0.83 0.9) (0.0 1.0)
+# LAMBDA_VALS # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
+LAMBDA_VALS=(0.0 0.5 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
-DISTILLATION=true
+DISTILLATION=false
 DISTILLATION_ALPHAS=(0.5)
 DISTILLATION_TEMP=1.0
 # TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_cifar10/experiments/std,lr_0.1,wd_0.0005,seed_42"
@@ -87,9 +87,6 @@ do
         cmd+=( --random_seed $RANDOM_SEED )
         cmd+=( --dataset_root $DATASET_ROOT )
         cmd+=( --dataset_name $DATASET_NAME )
-        ${DISTILLATION} && cmd+=( --distillation )
-        cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
-        cmd+=( --distillation_temperature $DISTILLATION_TEMP )
         cmd+=( --teacher_dir $TEACHER_DIR )
         cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
         cmd+=( --experiment_root $EXPERIMENT_ROOT )
