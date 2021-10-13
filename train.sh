@@ -45,7 +45,7 @@ for RANDOM_SEED in "${RANDOM_SEEDS[@]}"
 do
     for LAMBDA_VAL in "${LAMBDA_VALS[@]}"
     do
-      if [[ $DISTILLATION ]]
+      if [[ "$DISTILLATION" = true ]]
       then
         echo "Distillation!"
       else
