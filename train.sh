@@ -20,7 +20,7 @@ PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
 DISTILLATION=true
-DISTILLATION_ALPHA=0.5
+DISTILLATION_ALPHAS=(0.5)
 DISTILLATION_TEMP=1.0
 # TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_cifar10/experiments/std,lr_0.1,wd_0.0005,seed_42"
 # TEACHER_DIR="/hdd/mliuzzolino/cascaded_nets/resnet18_ImageNet2012/experiments/std,lr_0.01,wd_0.0005,seed_42"
@@ -47,42 +47,72 @@ do
     do
       if [[ "$DISTILLATION" = true ]]
       then
-        echo "Distillation!"
+        for DISTILLATION_ALPHA in "${DISTILLATION_ALPHAS[@]}"
+        do
+          cmd=( python train.py )   # create array with one element
+          cmd+=( --device $DEVICE )
+          cmd+=( --random_seed $RANDOM_SEED )
+          cmd+=( --dataset_root $DATASET_ROOT )
+          cmd+=( --dataset_name $DATASET_NAME )
+          ${DISTILLATION} && cmd+=( --distillation )
+          cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
+          cmd+=( --distillation_temperature $DISTILLATION_TEMP )
+          cmd+=( --teacher_dir $TEACHER_DIR )
+          cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
+          cmd+=( --experiment_root $EXPERIMENT_ROOT )
+          cmd+=( --experiment_name $EXPERIMENT_NAME )
+          cmd+=( --n_epochs $EPOCHS )
+          cmd+=( --model_key $MODEL )
+          cmd+=( --cascaded_scheme $CASCADED_SCHEME )
+          cmd+=( --lambda_val $LAMBDA_VAL )
+          cmd+=( --train_mode $TRAIN_MODE )
+          cmd+=( --batch_size $BATCH_SIZE )
+          cmd+=( --num_workers $NUM_WORKERS )
+          cmd+=( --learning_rate $LR )
+          cmd+=( --lr_milestones "${LR_MILESTONES[@]}" )
+          cmd+=( --momentum $MOMENTUM )
+          cmd+=( --weight_decay $WEIGHT_DECAY )
+          ${NESTEROV} && cmd+=( --nesterov )
+          ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
+          ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
+          ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
+          ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
+          ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
+          # Run command
+          "${cmd[@]}"
+        done
       else
-        echo "Not distillation!"
+        cmd=( python train.py )   # create array with one element
+        cmd+=( --device $DEVICE )
+        cmd+=( --random_seed $RANDOM_SEED )
+        cmd+=( --dataset_root $DATASET_ROOT )
+        cmd+=( --dataset_name $DATASET_NAME )
+        ${DISTILLATION} && cmd+=( --distillation )
+        cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
+        cmd+=( --distillation_temperature $DISTILLATION_TEMP )
+        cmd+=( --teacher_dir $TEACHER_DIR )
+        cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
+        cmd+=( --experiment_root $EXPERIMENT_ROOT )
+        cmd+=( --experiment_name $EXPERIMENT_NAME )
+        cmd+=( --n_epochs $EPOCHS )
+        cmd+=( --model_key $MODEL )
+        cmd+=( --cascaded_scheme $CASCADED_SCHEME )
+        cmd+=( --lambda_val $LAMBDA_VAL )
+        cmd+=( --train_mode $TRAIN_MODE )
+        cmd+=( --batch_size $BATCH_SIZE )
+        cmd+=( --num_workers $NUM_WORKERS )
+        cmd+=( --learning_rate $LR )
+        cmd+=( --lr_milestones "${LR_MILESTONES[@]}" )
+        cmd+=( --momentum $MOMENTUM )
+        cmd+=( --weight_decay $WEIGHT_DECAY )
+        ${NESTEROV} && cmd+=( --nesterov )
+        ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
+        ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
+        ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
+        ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
+        ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
+        # Run command
+        "${cmd[@]}"
       fi
-      exit
-      cmd=( python train.py )   # create array with one element
-      cmd+=( --device $DEVICE )
-      cmd+=( --random_seed $RANDOM_SEED )
-      cmd+=( --dataset_root $DATASET_ROOT )
-      cmd+=( --dataset_name $DATASET_NAME )
-      ${DISTILLATION} && cmd+=( --distillation )
-      cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
-      cmd+=( --distillation_temperature $DISTILLATION_TEMP )
-      cmd+=( --teacher_dir $TEACHER_DIR )
-      cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
-      cmd+=( --experiment_root $EXPERIMENT_ROOT )
-      cmd+=( --experiment_name $EXPERIMENT_NAME )
-      cmd+=( --n_epochs $EPOCHS )
-      cmd+=( --model_key $MODEL )
-      cmd+=( --cascaded_scheme $CASCADED_SCHEME )
-      cmd+=( --lambda_val $LAMBDA_VAL )
-      cmd+=( --train_mode $TRAIN_MODE )
-      cmd+=( --batch_size $BATCH_SIZE )
-      cmd+=( --num_workers $NUM_WORKERS )
-      cmd+=( --learning_rate $LR )
-      cmd+=( --lr_milestones "${LR_MILESTONES[@]}" )
-      cmd+=( --momentum $MOMENTUM )
-      cmd+=( --weight_decay $WEIGHT_DECAY )
-      ${NESTEROV} && cmd+=( --nesterov )
-      ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
-      ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
-      ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
-      ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
-      ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
-
-      # Run command
-      "${cmd[@]}"
     done
 done
