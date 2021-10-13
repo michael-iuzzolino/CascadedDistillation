@@ -47,7 +47,7 @@ class TD_Loss(object):
       t_timesteps = list(range(t+1, self.n_timesteps))
       for i, n in enumerate(t_timesteps, 1):
         logit_k = predicted_logits[n].detach().clone()
-        softmax_i = F.softmax(logit_k, dim=1)
+        softmax_i = nn.functional.softmax(logit_k, dim=1)
         sum_term = sum_term + self.flags.lambda_val**(i - 1) * softmax_i
 
       # Final terms
@@ -80,7 +80,7 @@ class TD_Loss(object):
       timestep_losses[t] = loss_i.item()
 
       # Predictions
-      softmax_i = F.softmax(logit_i, dim=1)
+      softmax_i = nn.functional.softmax(logit_i, dim=1)
       y_pred = torch.argmax(softmax_i, dim=1)
 
       # Updates running accuracy statistics
