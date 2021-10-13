@@ -57,8 +57,8 @@ class TD_Loss(object):
       
       # Temp scale
       if self._apply_temp_scaling:
-        logit_i = logit_i / self.flags.distillation_temp
-        softmax_j = softmax_j / self.flags.distillation_temp
+        logit_i = logit_i / self.flags.distillation_temperature
+        softmax_j = softmax_j / self.flags.distillation_temperature
       
       # Compute loss
       loss_i = criterion(pred_logits=logit_i, y_true_softmax=softmax_j)
