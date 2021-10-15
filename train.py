@@ -37,6 +37,9 @@ def setup_args():
   # Distillation
   parser.add_argument("--distillation", action="store_true", default=False,
                       help="Use distillation")
+  parser.add_argument("--distillation_loss_mode", type=str, 
+                      default="external",
+                      help="Distillation loss mode: internal, external")
   parser.add_argument("--distillation_alpha", type=float, default=0.5,
                       help="Distillation alpha: 0.5 default")
   parser.add_argument("--distillation_temperature", type=float, default=1.0,
@@ -188,7 +191,11 @@ def setup_output_dir(args, save_args_to_root=True):
   out_basename += f",seed_{args.random_seed}"
   
   if args.distillation:
-    out_basename += f",distillation,alpha_{args.distillation_alpha}"
+    if args.train_mode == "cascaded" and args.distillation_loss_mode == "internal":
+      out_basename += f",distillation__{args.distillation_loss_mode},alpha_{args.distillation_alpha}"
+    else:
+      out_basename += f",distillation,alpha_{args.distillation_alpha}"
+      
   
   if args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights:
     out_basename += f",pretrained_weights"

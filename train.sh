@@ -9,18 +9,18 @@ DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
-TRAIN_MODE="baseline"  # baseline, cascaded
+TRAIN_MODE="cascaded"  # baseline, cascaded
 CASCADED_SCHEME="parallel"  # serial, parallel
 MULTIPLE_FCS=false
 
 # LAMBDA_VALS # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
-LAMBDA_VALS=(0.0 0.5 1.0)
+LAMBDA_VALS=(0.1 0.25)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
 DISTILLATION=true
-DISTILLATION_ALPHAS=(0.0 0.25 0.75 1.0)
+DISTILLATION_ALPHAS=(1.0)  #  0.5 0.75 1.0)
 DISTILLATION_TEMP=1.0
 
 # Optimizer / LR Scheduling

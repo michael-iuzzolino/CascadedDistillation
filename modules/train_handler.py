@@ -151,20 +151,19 @@ class DistillationCascadedTrainingScheme(object):
     self.tau_handler = tau_handler
     self.flags = flags
     
-    self._target_criterion = losses.TD_Loss(n_timesteps, tau_handler, flags)
-    self._teacher_criterion = losses.TD_Loss(
-      n_timesteps, 
-      tau_handler, 
-      flags, 
-      apply_temp_scaling=True
-    )
-    self._criterion = losses.categorical_cross_entropy
+    if flags.distillation_loss_mode == "external":
+      self._target_criterion = losses.TD_Loss(n_timesteps, tau_handler, flags)
+      self._teacher_criterion = losses.TD_Loss(
+        n_timesteps, 
+        tau_handler, 
+        flags, 
+        apply_temp_scaling=True
+      )
+      self._criterion = losses.categorical_cross_entropy
+    else:
+      self._criterion = losses.Distillation_TD_Loss(n_timesteps, tau_handler, flags)
   
-  def _compute_distillation_loss(self, target, teacher, alpha, temperature):
-    teacher_term = teacher * (alpha * temperature * temperature)
-    target_term = (1 - alpha) * target
-    loss = teacher_term + target_term
-    return loss
+  
     
   def __call__(self, net, loader, criterion, epoch_i, optimizer, device, teacher_net):
     # Flag model for training
@@ -201,35 +200,40 @@ class DistillationCascadedTrainingScheme(object):
       y = torch.eye(self.num_classes)[targets]
       y = y.to(targets.device, non_blocking=True)
       
-      # Compute loss 1
-      target_loss, target_losses, target_accs = self._target_criterion(
-        self._criterion, 
-        predicted_logits,
-        y, 
-        targets
-      )
+      if True:
+        """
+        Compute TD loss independently for targets then teacher
+        Then apply distillation to teacher_TD and target_TD losses
+        """
+        # Compute loss 1
+        target_loss, target_losses, target_accs = self._target_criterion(
+          self._criterion, 
+          predicted_logits,
+          y, 
+          targets
+        )
+
+        # Compute distillation loss
+        teacher_loss, teacher_losses, teacher_accs = self._teacher_criterion(
+          self._criterion, 
+          predicted_logits, 
+          teacher_y, 
+          teacher_targets
+        )
+
+        # Loss
+        loss = losses.compute_distillation_loss(
+          target_loss, 
+          teacher_loss, 
+          alpha=self.flags.distillation_alpha, 
+          temperature=self.flags.distillation_temperature
+        )
+      else:
+        """
+        Compute distillation loss within TD loss computation
+        """
+        pass
       
-      # Compute distillation loss
-      teacher_loss, teacher_losses, teacher_accs = self._teacher_criterion(
-        self._criterion, 
-        predicted_logits, 
-        teacher_y, 
-        teacher_targets
-      )
-      
-      # Loss
-      loss = self._compute_distillation_loss(
-        target_loss, 
-        teacher_loss, 
-        alpha=self.flags.distillation_alpha, 
-        temperature=self.flags.distillation_temperature
-      )
-      
-#       timestep_losses = [
-#         self._compute_distillation_loss(target, teacher, alpha=self.flags.distillation_alpha) 
-#         for target, teacher in zip(target_losses, teacher_losses)
-#       ]
-        
       # Compute gradients
       loss.backward()
 
