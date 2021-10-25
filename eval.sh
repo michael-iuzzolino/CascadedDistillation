@@ -5,9 +5,11 @@ EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
 SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
 
 # Experiment name to evaluate
-MODEL="resnet10"  # resnet10, resnet18, resnet34, resnet50, densenet_cifar
+MODEL="resnet18_small"  # resnet10, resnet18, resnet18_small, resnet34, resnet50, densenet_cifar
 DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
+
+TEACHER_ROOT="/hdd/mliuzzolino/cascaded_nets/resnet18_CIFAR100/experiments"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
 CASCADED_SCHEME="parallel"  # parallel, serial (used for train_mode=cascaded_seq)
@@ -34,6 +36,7 @@ cmd+=( --dataset_key $DATASET_KEY )
 cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
 cmd+=( --experiment_root $EXPERIMENT_ROOT )
 cmd+=( --experiment_name $EXPERIMENT_NAME )
+cmd+=( --teacher_root $TEACHER_ROOT )
 cmd+=( --train_mode $TRAIN_MODE )
 cmd+=( --batch_size $BATCH_SIZE )
 cmd+=( --cascaded_scheme $CASCADED_SCHEME )

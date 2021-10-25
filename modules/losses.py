@@ -134,9 +134,8 @@ class Distillation_TD_Loss(object):
       teacher_softmax_j = teacher_term_1 + teacher_term_2
       
       # Temp scale
-      if self._apply_temp_scaling:
-        logit_i = logit_i / self.flags.distillation_temperature
-        teacher_softmax_j = teacher_softmax_j / self.flags.distillation_temperature
+      logit_i = logit_i / self.flags.distillation_temperature
+      teacher_softmax_j = teacher_softmax_j / self.flags.distillation_temperature
       
       # Compute target and teacher losses
       target_loss_i = criterion(pred_logits=logit_i, y_true_softmax=target_softmax_j)

@@ -36,6 +36,9 @@ def setup_args():
   parser.add_argument("--experiment_name", type=str, 
                       required=True,
                       help="Experiment name")
+  parser.add_argument("--teacher_root", type=str, 
+                      default="",
+                      help="Teacher network root")
   
   # Dataset
   parser.add_argument("--dataset_root", type=str, required=True,
@@ -170,6 +173,71 @@ def plot_training_curves(train_metrics, figs_root, show=False):
     plt.clf()
 
     
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+    
+
+def setup_teacher_model(teacher_dir, data_handler, device, args):
+  teacher_args_path = os.path.join(teacher_dir, "args.json")
+  with open(teacher_args_path, "r") as infile:
+    teacher_args = dotdict(json.load(infile))
+  
+  # Model
+  model_dict = {
+      "seed": args.random_seed,
+      "num_classes": data_handler.num_classes,
+      "pretrained": False,
+      "train_mode": teacher_args.train_mode,
+      "cascaded": teacher_args.cascaded,
+      "cascaded_scheme": teacher_args.cascaded_scheme,
+      "multiple_fcs": teacher_args.multiple_fcs,
+      "lambda_val": teacher_args.lambda_val,
+      "tdl_alpha": teacher_args.tdl_alpha,
+      "tdl_mode": teacher_args.tdl_mode,
+      "noise_var": teacher_args.noise_var,
+      "bn_opts": {
+          "temporal_affine": teacher_args.bn_time_affine,
+          "temporal_stats": teacher_args.bn_time_stats,
+      },
+      "imagenet": teacher_args.dataset_name == "ImageNet2012",
+      "imagenet_pretrained": False, # args.dataset_name == "ImageNet2012",
+      "n_channels": 1 if teacher_args.dataset_name == "FashionMNIST" else 3
+  }
+  
+  # Model init op
+  if teacher_args.model_key.startswith("resnet"):
+    model_init_op = resnet
+  elif teacher_args.model_key.startswith("densenet"):
+    model_init_op = densenet
+
+  # Initialize net
+  print("Instantiating teacher model...")
+  teacher_net = model_init_op.__dict__[teacher_args.model_key](**model_dict)
+  teacher_net = teacher_net.to(device)
+  
+  # Load ckpt
+  ckpt_dir = os.path.join(teacher_dir, "ckpts")
+  ckpt_path = np.sort(glob.glob(f"{ckpt_dir}/*epoch*.pt"))[-1]
+  print(f"Loading teacher ckpt {ckpt_path}...")
+  model_state_dict = torch.load(ckpt_path, map_location="cpu")["model"]
+  
+  # Fix state dict
+  fixed_dict = {}
+  for key, val in model_state_dict.items():
+    if key == "fc.weight" or key == "fc.bias":
+      key = f"fc.{key}"
+    fixed_dict[key] = val
+  teacher_net.load_state_dict(fixed_dict)
+  teacher_net = teacher_net.to(device)
+  
+  print("Teacher Model instantiated.")
+  teacher_net = teacher_net.eval()
+  return teacher_net
+
+    
 def compute_output_representations(logits, y):
   if len(logits.shape) == 2:
     logits = logits.unsqueeze(dim=0)
@@ -227,10 +295,37 @@ def main(args):
   
   exp_paths = [path for path in exp_paths
                if os.path.basename(path).startswith(train_mode_lookup)]
+  
   exp_paths = list(np.sort(exp_paths))
   
-  for exp_path in exp_paths:
-    print(f"exp_path: {exp_path}")
+  for i, exp_path in enumerate(exp_paths):
+    print(f"\nExp path {i}/{len(exp_paths)}: {exp_path}")
+    args.distillation = "distillation" in exp_path
+    
+    if args.distillation:
+      print("exp_path: ", exp_path)
+      student_exp_path, teacher_info = exp_path.split("++")
+      teacher_dir = teacher_info.split("teacher__")[1]
+      
+      distill_model_key = args.model_key
+      if "_small" in distill_model_key:
+        distill_model_key = distill_model_key.replace("_small", "")
+      args.teacher_dir = os.path.join(args.teacher_root, teacher_dir)
+      if not os.path.exists(args.teacher_dir):
+        raise AssertionError(f"Teacher ckpt does not exist @ {args.teacher_dir}")
+    
+    if "alpha" in exp_path:
+      try:
+        alpha_val = float(exp_path.split("alpha_")[1])
+      except:
+        alpha_val = float(exp_path.split("alpha_")[1].split("++")[0])
+      args.distillation_alpha = alpha_val
+    
+    if args.distillation:
+      args.distillation_temperature = 1.0
+      args.distillation_loss_mode = "internal" if "internal" in exp_path else "external"
+    # Ensure teacher_dir set if distillation mode enabled
+    
     if "cascaded_seq" in exp_path:
       continue
       
@@ -323,6 +418,20 @@ def main(args):
     print("Instantiating model...")
     net = model_init_op.__dict__[args.model_key](**model_dict).to(args.device)
     
+    if args.distillation:
+      teacher_net = setup_teacher_model(
+        args.teacher_dir, 
+        data_handler, 
+        args.device, 
+        args
+      )
+      criterion = losses.DistillationLossHandler(
+        alpha=args.distillation_alpha, 
+        temp=args.distillation_temperature
+      )
+    else:
+      criterion = losses.categorical_cross_entropy
+
     if args.train_mode in ["ic_only", "sdn", "cascaded"]:
       all_flops, normed_flops = sdn_utils.compute_inference_costs(
           data_handler, model_dict, args)
@@ -363,14 +472,19 @@ def main(args):
                                           keep_logits=args.keep_logits,
                                           keep_embeddings=args.keep_embeddings,
                                           tau_handler=tau_handler)
+    
+    # Evaluate net
+    eval_params = {
+        "net": net,
+        "loader": loader,
+        "criterion": criterion,
+        "epoch_i": 0,
+        "device": args.device
+    }
+    if args.distillation:
+      eval_params["teacher_net"] = teacher_net
 
-    criterion = losses.categorical_cross_entropy
-
-    test_loss, test_acc, logged_data = eval_fxn(net, 
-                                                loader, 
-                                                criterion, 
-                                                0, 
-                                                args.device)
+    test_loss, test_acc, logged_data = eval_fxn(**eval_params)
 
     if args.train_mode == "baseline":
       final_mean_test_acc = np.mean(test_acc)

@@ -394,7 +394,6 @@ def get_eval_loop(n_timesteps, num_classes, cascaded, flags,
                   verbose=False, tau_handler=None):
   """Retrieve sequential or cascaded eval function."""
   if flags.distillation:
-    
     if flags.train_mode == "baseline":
       eval_fxn = DistillationSequentialEvalLoop(
         num_classes, 

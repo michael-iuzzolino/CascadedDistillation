@@ -32,8 +32,7 @@ def setup_args():
                       required=True,
                       help="Experiment name")
   
-  
-  
+
   # Distillation
   parser.add_argument("--distillation", action="store_true", default=False,
                       help="Use distillation")
@@ -145,14 +144,19 @@ def setup_args():
   args = parser.parse_args()
   
   # Ensure teacher_dir set if distillation mode enabled
-  if args.distillation and args.teacher_dir == "":
-    distill_model_key = args.model_key
-    if "_small" in distill_model_key:
-      distill_model_key = distill_model_key.replace("_small", "")
-    dirname = f"{distill_model_key}_{args.dataset_name}"
-    args.teacher_dir = os.path.join("teacher_ckpts", dirname)
-    if not os.path.exists(args.teacher_dir):
-      print(f"Teacher ckpt does not exist @ {args.teacher_dir}")
+  if args.distillation:
+    if args.teacher_dir == "":
+      distill_model_key = args.model_key
+      if "_small" in distill_model_key:
+        distill_model_key = distill_model_key.replace("_small", "")
+      dirname = f"{distill_model_key}_{args.dataset_name}"
+      args.teacher_dir = os.path.join("teacher_ckpts", dirname)
+      print(f"Setting teacher dir to {args.teacher_dir}")
+      exit()
+      if not os.path.exists(args.teacher_dir):
+        raise AssertionError(f"Teacher ckpt does not exist @ {args.teacher_dir}")
+    else:
+      print(f"Teacher dir @ {args.teacher_dir}")
   
   # Set debug condition
   if args.debug:
@@ -195,7 +199,8 @@ def setup_output_dir(args, save_args_to_root=True):
       out_basename += f",distillation__{args.distillation_loss_mode},alpha_{args.distillation_alpha}"
     else:
       out_basename += f",distillation,alpha_{args.distillation_alpha}"
-      
+    teacher_dir = os.path.basename(args.teacher_dir)
+    out_basename += f"++teacher__{teacher_dir}"
   
   if args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights:
     out_basename += f",pretrained_weights"

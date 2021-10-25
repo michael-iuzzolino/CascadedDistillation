@@ -4,7 +4,7 @@ DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
 EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
 SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
 
-MODEL="resnet18_small"  # resnet10, resnet18, resnet18_small, resnet34, resnet50, densenet_cifar
+MODEL="resnet18_small"  # resnet18, resnet18_small, resnet34, resnet50, densenet_cifar
 DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
@@ -14,7 +14,7 @@ CASCADED_SCHEME="parallel"  # serial, parallel
 MULTIPLE_FCS=false
 
 # LAMBDA_VALS # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
-LAMBDA_VALS=(0.1 0.25)
+LAMBDA_VALS=(0.5 0.9 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
@@ -22,11 +22,17 @@ USE_ALL_ICS=false
 DISTILLATION=true
 DISTILLATION_ALPHAS=(1.0)  #  0.5 0.75 1.0)
 DISTILLATION_TEMP=1.0
+DISTILLATION_LOSS_MODE="external" # external, internal
+TEACHER_ROOT="/hdd/mliuzzolino/cascaded_nets/resnet18_CIFAR100/experiments"
+# TEACHER_EXP_DIR="td(0.0),parallel,lr_0.01,wd_0.0005,seed_42"
+TEACHER_EXP_DIR="td(0.5),parallel,lr_0.01,wd_0.001,seed_42"
+# TEACHER_EXP_DIR="td(1.0),parallel,lr_0.01,wd_0.0005,seed_42"
+TEACHER_DIR="$TEACHER_ROOT/$TEACHER_EXP_DIR"
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
 LR=0.01  # 0.01 for all cases, but for imagenet tdlambda=1.0, use 0.001
-WEIGHT_DECAY=0.0005
+WEIGHT_DECAY=0.001  # 0.0005
 MOMENTUM=0.9
 NESTEROV=true
 
@@ -52,8 +58,10 @@ do
           cmd+=( --dataset_root $DATASET_ROOT )
           cmd+=( --dataset_name $DATASET_NAME )
           ${DISTILLATION} && cmd+=( --distillation )
+          cmd+=( --distillation_loss_mode $DISTILLATION_LOSS_MODE )
           cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
           cmd+=( --distillation_temperature $DISTILLATION_TEMP )
+          cmd+=( --teacher_dir $TEACHER_DIR )
           cmd+=( --split_idxs_root $SPLIT_IDXS_ROOT )
           cmd+=( --experiment_root $EXPERIMENT_ROOT )
           cmd+=( --experiment_name $EXPERIMENT_NAME )

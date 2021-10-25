@@ -151,7 +151,7 @@ class DistillationCascadedTrainingScheme(object):
     self.tau_handler = tau_handler
     self.flags = flags
     
-    if flags.distillation_loss_mode == "external":
+    if self.flags.distillation_loss_mode == "external":
       self._target_criterion = losses.TD_Loss(n_timesteps, tau_handler, flags)
       self._teacher_criterion = losses.TD_Loss(
         n_timesteps, 
@@ -162,7 +162,6 @@ class DistillationCascadedTrainingScheme(object):
       self._criterion = losses.categorical_cross_entropy
     else:
       self._criterion = losses.Distillation_TD_Loss(n_timesteps, tau_handler, flags)
-  
   
     
   def __call__(self, net, loader, criterion, epoch_i, optimizer, device, teacher_net):
@@ -200,7 +199,7 @@ class DistillationCascadedTrainingScheme(object):
       y = torch.eye(self.num_classes)[targets]
       y = y.to(targets.device, non_blocking=True)
       
-      if True:
+      if self.flags.distillation_loss_mode == "external":
         """
         Compute TD loss independently for targets then teacher
         Then apply distillation to teacher_TD and target_TD losses
@@ -232,7 +231,13 @@ class DistillationCascadedTrainingScheme(object):
         """
         Compute distillation loss within TD loss computation
         """
-        pass
+        loss, target_losses, target_accs = self._criterion(
+            criterion=losses.categorical_cross_entropy,
+            predicted_logits=predicted_logits,
+            teacher_y=teacher_y,
+            y=y,
+            targets=targets,
+        )
       
       # Compute gradients
       loss.backward()
@@ -379,8 +384,10 @@ def get_train_loop(n_timesteps, num_classes, flags, tau_handler=None):
   """Retrieve sequential or cascaded training function."""
   if flags.distillation:
     if flags.train_mode == "baseline":
+      print("Setting training scheme to DistillationSequentialTrainingScheme")
       train_fxn = DistillationSequentialTrainingScheme(num_classes, flags)
     elif flags.train_mode == "cascaded":
+      print("Setting training scheme to DistillationCascadedTrainingScheme")
       train_fxn = DistillationCascadedTrainingScheme(
         n_timesteps, num_classes, flags, tau_handler
       )
@@ -388,8 +395,10 @@ def get_train_loop(n_timesteps, num_classes, flags, tau_handler=None):
       raise NotImplementedError(f"{flags.train_mode} train mode not implemented")
   else:
     if flags.train_mode == "baseline":
+      print("Setting training scheme to SequentialTrainingScheme")
       train_fxn = SequentialTrainingScheme(num_classes, flags)
     elif flags.train_mode == "cascaded":
+      print("Setting training scheme to CascadedTrainingScheme")
       train_fxn = CascadedTrainingScheme(
         n_timesteps, num_classes, flags, tau_handler
       )
