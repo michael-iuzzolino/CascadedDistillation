@@ -300,8 +300,7 @@ def main(args):
   
   for i, exp_path in enumerate(exp_paths):
     print(f"\nExp path {i}/{len(exp_paths)}: {exp_path}")
-    args.distillation = "distillation" in exp_path
-    
+    args.distillation = "distillation" in os.path.basename(exp_path)
     if args.distillation:
       print("exp_path: ", exp_path)
       student_exp_path, teacher_info = exp_path.split("++")

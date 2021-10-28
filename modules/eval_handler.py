@@ -407,7 +407,7 @@ def get_eval_loop(n_timesteps, num_classes, cascaded, flags,
         num_classes, 
         keep_logits, 
         keep_embeddings, 
-        verbose
+        verbose,
       )
   else:
     if flags.train_mode == "baseline":

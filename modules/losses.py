@@ -17,7 +17,7 @@ class DistillationLossHandler(object):
     self._temp = temp
     self._kl = nn.KLDivLoss()
   
-  def __call__(self, outputs, labels, teacher_outputs):
+  def __call__(self, outputs, labels, teacher_outputs, temp_pred=None):
     kl_loss = self._kl(
       nn.functional.log_softmax(outputs / self._temp, dim=1), 
       nn.functional.softmax(teacher_outputs / self._temp, dim=1)
@@ -28,11 +28,10 @@ class DistillationLossHandler(object):
   
   
 class TD_Loss(object):
-  def __init__(self, n_timesteps, tau_handler, flags, apply_temp_scaling=False):
+  def __init__(self, n_timesteps, tau_handler, flags):
     self.n_timesteps = n_timesteps
     self.tau_handler = tau_handler
     self.flags = flags
-    self._apply_temp_scaling = apply_temp_scaling
   
   def __call__(self, criterion, predicted_logits, y, targets):
     loss = 0
@@ -56,10 +55,9 @@ class TD_Loss(object):
       softmax_j = term_1 + term_2
       
       # Temp scale
-      if self._apply_temp_scaling:
-        logit_i = logit_i / self.flags.distillation_temperature
-        softmax_j = softmax_j / self.flags.distillation_temperature
-      
+      logit_i = logit_i / self.flags.distillation_temperature
+      softmax_j = softmax_j / self.flags.distillation_temperature
+
       # Compute loss
       loss_i = criterion(pred_logits=logit_i, y_true_softmax=softmax_j)
 
@@ -96,10 +94,10 @@ class TD_Loss(object):
   
   
 def compute_distillation_loss(target, teacher, alpha, temperature):
-    teacher_term = teacher * (alpha * temperature * temperature)
-    target_term = (1 - alpha) * target
-    loss = teacher_term + target_term
-    return loss
+  teacher_term = teacher * (alpha * temperature * temperature)
+  target_term = (1 - alpha) * target
+  loss = teacher_term + target_term
+  return loss
   
 
 class Distillation_TD_Loss(object):

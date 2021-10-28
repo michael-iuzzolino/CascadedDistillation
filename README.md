@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Improving Anytime Prediction with Parallel Cascaded Networks and a Temporal-Difference Loss
 
 ---
@@ -21,3 +22,6 @@ In `train.sh`, be sure to specify `DATASET_ROOT`, `EXPERIMENT_ROOT`, and `SPLIT_
 Use `eval.sh` to load and evaluate the model stored in `EXPERIMENT_NAME`. This script will evaluate the performance of the model and, if `--keep_logits` is specified, generate and store the logits for all examples in the specified dataset. The logits are useful for downstream tasks, such as training metacognition models.
 
 Similar to `train.sh`, specify `DATASET_ROOT`, `EXPERIMENT_ROOT`, and `SPLIT_IDXS_ROOT`.
+=======
+# CascadedNets
+>>>>>>> 74917ce087b7bf078151a633ddc489ec39b01782

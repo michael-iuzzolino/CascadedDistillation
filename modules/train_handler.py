@@ -157,14 +157,22 @@ class DistillationCascadedTrainingScheme(object):
         n_timesteps, 
         tau_handler, 
         flags, 
-        apply_temp_scaling=True
       )
       self._criterion = losses.categorical_cross_entropy
     else:
       self._criterion = losses.Distillation_TD_Loss(n_timesteps, tau_handler, flags)
   
     
-  def __call__(self, net, loader, criterion, epoch_i, optimizer, device, teacher_net):
+  def __call__(
+    self, 
+    net, 
+    loader, 
+    criterion, 
+    epoch_i, 
+    optimizer, 
+    device, 
+    teacher_net,
+  ):
     # Flag model for training
     net.train()
     
@@ -192,6 +200,7 @@ class DistillationCascadedTrainingScheme(object):
       for t in range(self.n_timesteps):
         # Run forward pass
         logit_t = net(data, t)
+          
         predicted_logits.append(logit_t)
 
       # One-hot-ify targets and send to output device
@@ -211,21 +220,21 @@ class DistillationCascadedTrainingScheme(object):
           y, 
           targets
         )
-
+        
         # Compute distillation loss
         teacher_loss, teacher_losses, teacher_accs = self._teacher_criterion(
           self._criterion, 
           predicted_logits, 
           teacher_y, 
-          teacher_targets
+          teacher_targets,
         )
-
+        
         # Loss
         loss = losses.compute_distillation_loss(
           target_loss, 
           teacher_loss, 
           alpha=self.flags.distillation_alpha, 
-          temperature=self.flags.distillation_temperature
+          temperature=self.flags.distillation_temperature,
         )
       else:
         """

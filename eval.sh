@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
-EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
+EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets"  # Specify experiment root
 SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
 
 # Experiment name to evaluate
@@ -9,7 +9,7 @@ MODEL="resnet18_small"  # resnet10, resnet18, resnet18_small, resnet34, resnet50
 DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
-TEACHER_ROOT="/hdd/mliuzzolino/cascaded_nets/resnet18_CIFAR100/experiments"
+TEACHER_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets/resnet18_CIFAR100/experiments"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
 CASCADED_SCHEME="parallel"  # parallel, serial (used for train_mode=cascaded_seq)

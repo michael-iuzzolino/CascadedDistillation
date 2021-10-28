@@ -54,7 +54,7 @@ class ResNet(nn.Module):
       self._time_bn = False
     else:
       self._time_bn = kwargs["bn_opts"]["temporal_stats"]
-    
+      
     # Set up batch norm operation
     self._norm_layer_op = self._setup_bn_op(**kwargs)
 
@@ -83,15 +83,19 @@ class ResNet(nn.Module):
     if self._multiple_fcs:
       fcs = []
       for i in range(self.timesteps):
-        fc_i = InternalClassifier(n_channels=filter_i, 
-                                  num_classes=num_classes,
-                                  block_expansion=block.expansion)
+        fc_i = InternalClassifier(
+          n_channels=filter_i, 
+          num_classes=num_classes,
+          block_expansion=block.expansion
+        )
         fcs.append(fc_i)
       self.fcs = nn.ModuleList(fcs)
     else:
-      self.fc = InternalClassifier(n_channels=filter_i, 
-                                   num_classes=num_classes,
-                                   block_expansion=block.expansion)
+      self.fc = InternalClassifier(
+        n_channels=filter_i, 
+        num_classes=num_classes,
+        block_expansion=block.expansion
+      )
     
     # Weight initialization
     for m in self.modules():
@@ -223,14 +227,14 @@ class ResNet(nn.Module):
     # Res Layers
     for layer in self.layers:
       out = layer(out)
-      
+    
     # Final layer
     if self._multiple_fcs:
-      out = self.fcs[t](out)
+      final_out = self.fcs[t](out)
     else:
-      out = self.fc(out)
-
-    return out
+      final_out = self.fc(out)
+    
+    return final_out
   
   def forward(self, x, t=0):
     return self._forward(x, t)

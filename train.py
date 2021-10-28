@@ -46,6 +46,8 @@ def setup_args():
   parser.add_argument("--teacher_dir", type=str, 
                       default="",
                       help="Teacher network root")
+  parser.add_argument("--trainable_temp", action="store_true", default=False,
+                      help="Trainable temperature scaling")
   
   # Dataset
   parser.add_argument("--dataset_root", type=str, required=True,
@@ -210,7 +212,7 @@ def setup_output_dir(args, save_args_to_root=True):
     
   if args.tau_weighted_loss:
     out_basename += ",tau_weighted"
-    
+  
   save_root = os.path.join(args.experiment_root,
                            args.experiment_name,
                            "experiments",
@@ -502,7 +504,7 @@ def main(args):
     )
   else:
     criterion = losses.categorical_cross_entropy
-    
+  
   # Condition model and get handler opts
   opts = condition_model(save_root, args)
   
@@ -529,18 +531,22 @@ def main(args):
 
   # train and eval functions
   print("Setting up train and eval functions...")
-  train_fxn = train_handler.get_train_loop(net.timesteps,
-                                           data_handler.num_classes,
-                                           args,
-                                           tau_handler)
+  train_fxn = train_handler.get_train_loop(
+    net.timesteps,
+    data_handler.num_classes,
+    args,
+    tau_handler,
+  )
   
-  eval_fxn = eval_handler.get_eval_loop(net.timesteps,
-                                        data_handler.num_classes,
-                                        cascaded=args.cascaded,
-                                        flags=args,
-                                        keep_logits=False,
-                                        keep_embeddings=False,
-                                        tau_handler=tau_handler)
+  eval_fxn = eval_handler.get_eval_loop(
+    net.timesteps,
+    data_handler.num_classes,
+    cascaded=args.cascaded,
+    flags=args,
+    keep_logits=False,
+    keep_embeddings=False,
+    tau_handler=tau_handler,
+  )
   print("Complete.")
 
   # Metrics container
