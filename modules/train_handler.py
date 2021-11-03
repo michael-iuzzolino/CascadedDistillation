@@ -176,6 +176,7 @@ class DistillationCascadedTrainingScheme(object):
     
     batch_losses = []
     batch_accs = []
+    batch_temps = []
     for batch_i, (data, targets) in enumerate(loader):
       if self.flags.debug and batch_i > 1:
         break
@@ -237,14 +238,19 @@ class DistillationCascadedTrainingScheme(object):
       # Update batch loss and compute average
       batch_losses.append(target_losses)
       batch_accs.append(target_accs)
+      batch_temps.append(predicted_temps)
       
       # Compute means
       mean_batch_loss = torch.stack(batch_losses).mean().item()
       mean_batch_acc = torch.stack(batch_accs).mean().item() * 100
+      mean_batch_temp = torch.stack(batch_temps).mean().item()
       
-      sys.stdout.write((f"\rTraining Batch {batch_i+1}/{len(loader)} -- "
-                        f"Batch Loss: {mean_batch_loss:0.6f} -- "
-                        f"Batch Acc: {mean_batch_acc:0.2f}%"))
+      sys.stdout.write((
+        f"\rTraining Batch {batch_i+1}/{len(loader)} -- "
+        f"Batch Loss: {mean_batch_loss:0.6f} -- "
+        f"Batch Acc: {mean_batch_acc:0.2f}% -- "
+        f"Batch temp: {mean_batch_temp:0.2f}"
+      ))
       sys.stdout.flush()
       
     # Average over the batches per timestep
