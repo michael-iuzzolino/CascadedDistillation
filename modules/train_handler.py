@@ -242,7 +242,7 @@ class DistillationCascadedTrainingScheme(object):
         f"\rTraining Batch {batch_i+1}/{len(loader)} -- "
         f"Batch Loss: {mean_batch_loss:0.6f} -- "
         f"Batch Acc: {mean_batch_acc:0.2f}% -- "
-        f"Batch temp: {net_temp:0.2f} -- "
+        f"Batch temp: {net_temp:0.6f} -- "
         f"Batch exp(temp): {net_exp_temp:0.2f}"
       ))
       sys.stdout.flush()
