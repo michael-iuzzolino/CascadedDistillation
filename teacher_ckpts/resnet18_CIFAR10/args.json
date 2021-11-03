@@ -15,7 +15,6 @@
     "eval_freq": 10,
     "experiment_name": "resnet18_CIFAR10",
     "experiment_root": "/hdd/mliuzzolino/cascaded_nets",
-    "init_tau": 0.01,
     "keep_logits": false,
     "lambda_val": 1.0,
     "learning_rate": 0.1,
@@ -45,7 +44,6 @@
         0.75,
         0.9
     ],
-    "tau_weighted_loss": false,
     "tdl_alpha": 0.0,
     "tdl_mode": "OSD",
     "teacher_dir": "/hdd/mliuzzolino/cascaded_nets/resnet18_ImageNet2012/experiments/std,lr_0.01,wd_0.0005,seed_42",

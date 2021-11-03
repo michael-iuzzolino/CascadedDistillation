@@ -1,10 +1,10 @@
 #!/bin/bash
 
 DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
-EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets"  # Specify experiment root
+EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets_temp"  # Specify experiment root
 SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
 
-MODEL="resnet18"  # resnet18, resnet18_small, resnet34, resnet50, densenet_cifar
+MODEL="resnet18_small"  # resnet18, resnet18_small, resnet34, resnet50, densenet_cifar
 DATASET_NAME="CIFAR100"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
@@ -15,20 +15,15 @@ MULTIPLE_FCS=false
 
 # LAMBDA_VALS # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.5 0.8 1.0)
 LAMBDA_VALS=(0.5)
-TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
-DISTILLATION=false
-DISTILLATION_ALPHAS=(1.0)  #  0.5 0.75 1.0)
+DISTILLATION=true
+DISTILLATION_ALPHAS=(0.5 1.0)  #  0.5 0.75 1.0)
 DISTILLATION_TEMP=1.0
-DISTILLATION_LOSS_MODE="external" # external, internal
-TRAINABLE_TEMP=true
-TEACHER_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets/resnet18_CIFAR100/experiments"
-# TEACHER_EXP_DIR="td(0.0),parallel,lr_0.01,wd_0.0005,seed_42"
-TEACHER_EXP_DIR="td(0.9),parallel,lr_0.01,wd_0.001,seed_42"
-# TEACHER_EXP_DIR="td(0.5),parallel,lr_0.01,wd_0.001,seed_42"
-# TEACHER_EXP_DIR="td(1.0),parallel,lr_0.01,wd_0.0005,seed_42"
+TRAINABLE_TEMP=false
+TEACHER_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets_temp/resnet18_CIFAR100/experiments"
+TEACHER_EXP_DIR="td(0.25),parallel,lr_0.01,wd_0.001,seed_42"
 TEACHER_DIR="$TEACHER_ROOT/$TEACHER_EXP_DIR"
 
 # Optimizer / LR Scheduling
@@ -60,7 +55,6 @@ do
           cmd+=( --dataset_root $DATASET_ROOT )
           cmd+=( --dataset_name $DATASET_NAME )
           ${DISTILLATION} && cmd+=( --distillation )
-          cmd+=( --distillation_loss_mode $DISTILLATION_LOSS_MODE )
           cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
           cmd+=( --distillation_temperature $DISTILLATION_TEMP )
           ${TRAINABLE_TEMP} && cmd+=( --trainable_temp )
@@ -80,7 +74,6 @@ do
           cmd+=( --momentum $MOMENTUM )
           cmd+=( --weight_decay $WEIGHT_DECAY )
           ${NESTEROV} && cmd+=( --nesterov )
-          ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
           ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
           ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
           ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
@@ -109,7 +102,6 @@ do
         cmd+=( --momentum $MOMENTUM )
         cmd+=( --weight_decay $WEIGHT_DECAY )
         ${NESTEROV} && cmd+=( --nesterov )
-        ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
         ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
         ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
         ${USE_ALL_ICS} && cmd+=( --use_all_ICs )

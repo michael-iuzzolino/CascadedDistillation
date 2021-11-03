@@ -2,28 +2,6 @@ from models import densenet
 from models import resnet
 import modules.flops_benchmark as flops_benchmark
 import numpy as np
-
-
-class IC_tau_handler:
-  def __init__(self, init_tau, tau_targets, epoch_asymptote=50, active=True):
-    self._init_tau = init_tau
-    self._tau_targets = tau_targets
-    self._epoch_asymptote = epoch_asymptote
-    self._active = active
-    self._slopes = (np.array(tau_targets) - init_tau) / epoch_asymptote
-    
-  def _compute_tau(self, tau_i, epoch_i):
-    target_tau = self._tau_targets[tau_i]
-    tau_i = self._slopes[tau_i] * epoch_i + self._init_tau
-    tau_i = min(tau_i, target_tau)
-    return tau_i
-  
-  def __call__(self, tau_i, epoch_i):
-    if self._active:
-      tau_val = self._compute_tau(tau_i, epoch_i)
-    else:
-      tau_val = self._tau_targets[tau_i]
-    return tau_val
   
   
 def compute_inference_costs(data_handler, model_dict, args, verbose=False):

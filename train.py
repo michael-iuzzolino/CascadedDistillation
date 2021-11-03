@@ -36,9 +36,6 @@ def setup_args():
   # Distillation
   parser.add_argument("--distillation", action="store_true", default=False,
                       help="Use distillation")
-  parser.add_argument("--distillation_loss_mode", type=str, 
-                      default="external",
-                      help="Distillation loss mode: internal, external")
   parser.add_argument("--distillation_alpha", type=float, default=0.5,
                       help="Distillation alpha: 0.5 default")
   parser.add_argument("--distillation_temperature", type=float, default=1.0,
@@ -93,13 +90,9 @@ def setup_args():
                       help="Cascaded net")
   parser.add_argument("--cascaded_scheme", type=str, default="parallel",
                       help="cascaded_scheme: serial, parallel")
-  parser.add_argument("--init_tau", type=float, default=0.01,
-                      help="Initial tau valu")
   parser.add_argument("--target_IC_inference_costs", nargs="+", type=float, 
                       default=[0.0, 0.15, 0.30, 0.45, 0.60, 0.75, 0.90],
                       help="target_IC_inference_costs")
-  parser.add_argument("--tau_weighted_loss", action="store_true", default=False,
-                      help="Use tau weights on IC losses")
   parser.add_argument("--use_pretrained_weights", action="store_true", default=False,
                       help="Use pretrained weights")
   parser.add_argument("--use_all_ICs", action="store_true", default=False,
@@ -197,21 +190,20 @@ def setup_output_dir(args, save_args_to_root=True):
   out_basename += f",seed_{args.random_seed}"
   
   if args.distillation:
-    if args.train_mode == "cascaded" and args.distillation_loss_mode == "internal":
-      out_basename += f",distillation__{args.distillation_loss_mode},alpha_{args.distillation_alpha}"
-    else:
-      out_basename += f",distillation,alpha_{args.distillation_alpha}"
+    out_basename += f",distillation,alpha_{args.distillation_alpha}"
     teacher_dir = os.path.basename(args.teacher_dir)
     out_basename += f"++teacher__{teacher_dir}"
+
+    if args.trainable_temp:
+      out_basename += ",trainable_temp"
+    else:
+      out_basename += ",fixed_temp"
   
   if args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights:
     out_basename += f",pretrained_weights"
   
   if args.train_mode in ["cascaded"] and args.multiple_fcs:
     out_basename += f",multiple_fcs"
-    
-  if args.tau_weighted_loss:
-    out_basename += ",tau_weighted"
   
   save_root = os.path.join(args.experiment_root,
                            args.experiment_name,
@@ -334,6 +326,7 @@ def setup_model(data_handler, device, save_root, args):
       "tdl_alpha": args.tdl_alpha,
       "tdl_mode": args.tdl_mode,
       "noise_var": args.noise_var,
+      "trainable_temp": args.trainable_temp,
       "bn_opts": {
           "temporal_affine": args.bn_time_affine,
           "temporal_stats": args.bn_time_stats,
@@ -360,12 +353,16 @@ def setup_model(data_handler, device, save_root, args):
   
   # Compute inference costs if ic_only / SDN
   if args.train_mode in ["ic_only", "sdn"]:
-    all_flops, normed_flops = sdn_utils.compute_inference_costs(data_handler, 
-                                                                model_dict, 
-                                                                args)
-    net.set_target_inference_costs(normed_flops, 
-                                   args.target_IC_inference_costs,
-                                   use_all=args.use_all_ICs)
+    all_flops, normed_flops = sdn_utils.compute_inference_costs(
+      data_handler, 
+      model_dict, 
+      args
+    )
+    net.set_target_inference_costs(
+      normed_flops, 
+      args.target_IC_inference_costs,
+      use_all=args.use_all_ICs
+    )
     
     if args.use_all_ICs:
       args.target_IC_inference_costs = normed_flops
@@ -419,19 +416,16 @@ def condition_model(save_root, args):
     # Set handler params
     if args.train_mode == "ic_only":
       net.freeze_backbone()
-      tau_scheduling_active = False
       n_epochs = 25
       lr_schedule_milestones = [5, 10, 15, 20]
       weight_decay = 0.0
       lr = 0.001
     elif args.train_mode == "cascaded":
-      tau_scheduling_active = args.tau_weighted_loss
       n_epochs = args.n_epochs
       lr_schedule_milestones = args.lr_milestones
       weight_decay = args.weight_decay
       lr = args.learning_rate
     else:
-      tau_scheduling_active = False
       n_epochs = 50
       lr_schedule_milestones = [15, 30, 45]
       weight_decay = 0.0
@@ -444,7 +438,6 @@ def condition_model(save_root, args):
 
     optimizer_init_op = optim.Adam
     lr_schedule_gamma = 0.1
-    tau_epoch_asymptote = 1
     args.n_epochs = n_epochs
   else:
     optimizer_dict = {
@@ -456,19 +449,12 @@ def condition_model(save_root, args):
     optimizer_init_op = optim.SGD
     lr_schedule_milestones = args.lr_milestones
     lr_schedule_gamma = args.lr_schedule_gamma
-    tau_epoch_asymptote = 100
-    tau_scheduling_active = args.tau_weighted_loss
-
-#     if args.train_mode == "baseline":
-#       net.turn_off_IC()
   
   returns = {
       "optimizer_dict": optimizer_dict,
       "optimizer_init_op": optimizer_init_op,
       "lr_schedule_milestones": lr_schedule_milestones,
       "lr_schedule_gamma": lr_schedule_gamma,
-      "tau_epoch_asymptote": tau_epoch_asymptote,
-      "tau_scheduling_active": tau_scheduling_active,
   }
   return returns
 
@@ -478,9 +464,11 @@ def main(args):
   utils.make_reproducible(args.random_seed)
 
   # Set Device
-  device = torch.device(args.device
-                        if torch.cuda.is_available() and not args.use_cpu
-                        else "cpu")
+  device = torch.device(
+    args.device
+    if torch.cuda.is_available() and not args.use_cpu
+    else "cpu"
+  )
 
   # Setup output directory
   save_root = setup_output_dir(args)
@@ -498,23 +486,9 @@ def main(args):
       device, 
       args
     )
-    criterion = losses.DistillationLossHandler(
-      alpha=args.distillation_alpha, 
-      temp=args.distillation_temperature
-    )
-  else:
-    criterion = losses.categorical_cross_entropy
   
   # Condition model and get handler opts
   opts = condition_model(save_root, args)
-  
-  # Tau handler
-  tau_handler = sdn_utils.IC_tau_handler(
-    init_tau=args.init_tau,
-    tau_targets=args.target_IC_inference_costs, 
-    epoch_asymptote=opts["tau_epoch_asymptote"],
-    active=opts["tau_scheduling_active"]
-  )
   
   # Init optimizer
   optimizer = opts["optimizer_init_op"](
@@ -528,14 +502,12 @@ def main(args):
     gamma=opts["lr_schedule_gamma"]
   )
 
-
   # train and eval functions
   print("Setting up train and eval functions...")
   train_fxn = train_handler.get_train_loop(
     net.timesteps,
     data_handler.num_classes,
     args,
-    tau_handler,
   )
   
   eval_fxn = eval_handler.get_eval_loop(
@@ -545,7 +517,6 @@ def main(args):
     flags=args,
     keep_logits=False,
     keep_embeddings=False,
-    tau_handler=tau_handler,
   )
   print("Complete.")
 
@@ -565,7 +536,6 @@ def main(args):
       train_params = {
           "net": net, 
           "loader": loaders["train"], 
-          "criterion": criterion, 
           "epoch_i": epoch_i, 
           "optimizer": optimizer, 
           "device": device,
@@ -597,7 +567,6 @@ def main(args):
         eval_params = {
             "net": net,
             "loader": loaders["val"],
-            "criterion": criterion,
             "epoch_i": epoch_i,
             "device": device
         }
@@ -625,7 +594,6 @@ def main(args):
   eval_params = {
       "net": net,
       "loader": loaders["val"],
-      "criterion": criterion,
       "epoch_i": epoch_i,
       "device": device
   }

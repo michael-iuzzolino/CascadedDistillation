@@ -86,8 +86,6 @@ def setup_args():
                       help="Cascaded net")
   parser.add_argument("--cascaded_scheme", type=str, default="scheme_2",
                       help="cascaded_scheme: scheme_1, scheme_2")
-  parser.add_argument("--init_tau", type=float, default=0.01,
-                      help="Initial tau valu")
   parser.add_argument("--target_IC_inference_costs", nargs="+", type=float, 
                       default=[0.15, 0.30, 0.45, 0.60, 0.75, 0.90],
                       help="target_IC_inference_costs")
@@ -322,7 +320,6 @@ def main(args):
     
     if args.distillation:
       args.distillation_temperature = 1.0
-      args.distillation_loss_mode = "internal" if "internal" in exp_path else "external"
     # Ensure teacher_dir set if distillation mode enabled
     
     if "cascaded_seq" in exp_path:
@@ -424,12 +421,6 @@ def main(args):
         args.device, 
         args
       )
-      criterion = losses.DistillationLossHandler(
-        alpha=args.distillation_alpha, 
-        temp=args.distillation_temperature
-      )
-    else:
-      criterion = losses.categorical_cross_entropy
 
     if args.train_mode in ["ic_only", "sdn", "cascaded"]:
       all_flops, normed_flops = sdn_utils.compute_inference_costs(
@@ -448,35 +439,25 @@ def main(args):
       plot_training_curves(train_metrics, figs_root)
     except:
       print(f"Could not plot training curves. Issue with file {metrics_path}")
-    try:
-      tau_epoch_asymptote = 1 if args.train_mode == "ic_only" else 100
-      tau_scheduling_active = args.train_mode != "ic_only"
-      tau_handler = sdn_utils.IC_tau_handler(
-          init_tau=loaded_args.init_tau,
-          tau_targets=loaded_args.target_IC_inference_costs, 
-          epoch_asymptote=tau_epoch_asymptote,
-          active=tau_scheduling_active)
-    except:
-      tau_handler = None
-    
+
     if args.n_timesteps is not None:
       n_timesteps = args.n_timesteps
     else:
       n_timesteps = net.timesteps
     
-    eval_fxn = eval_handler.get_eval_loop(n_timesteps,
-                                          data_handler.num_classes,
-                                          cascaded=args.cascaded,
-                                          flags=args,
-                                          keep_logits=args.keep_logits,
-                                          keep_embeddings=args.keep_embeddings,
-                                          tau_handler=tau_handler)
-    
+    eval_fxn = eval_handler.get_eval_loop(
+      n_timesteps,
+      data_handler.num_classes,
+      cascaded=args.cascaded,
+      flags=args,
+      keep_logits=args.keep_logits,
+      keep_embeddings=args.keep_embeddings,
+    )
+
     # Evaluate net
     eval_params = {
         "net": net,
         "loader": loader,
-        "criterion": criterion,
         "epoch_i": 0,
         "device": args.device
     }

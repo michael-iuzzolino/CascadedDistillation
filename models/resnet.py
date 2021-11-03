@@ -45,6 +45,7 @@ class ResNet(nn.Module):
     self._sdn_train_mode = self._train_mode in ["sdn", "ic_only"]
     self._cascaded = kwargs.get("cascaded", False)
     self._cascaded_scheme = kwargs.get("cascaded_scheme", "parallel")
+    self._trainable_temp = kwargs.get("trainable_temp")
     
     # Set multiple FCs flag
     self._multiple_fcs = kwargs.get("multiple_fcs", False)
@@ -97,6 +98,13 @@ class ResNet(nn.Module):
         block_expansion=block.expansion
       )
     
+    if self._trainable_temp:
+      self.temp_fc = InternalClassifier(
+        n_channels=filter_i, 
+        num_classes=1,
+        block_expansion=block.expansion
+      )
+
     # Weight initialization
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
@@ -234,7 +242,14 @@ class ResNet(nn.Module):
     else:
       final_out = self.fc(out)
     
-    return final_out
+    outputs = {
+      "logits": final_out
+    }
+    if self._trainable_temp:
+      temp_pred = self.temp_fc(out)
+      outputs["temp_pred"] = temp_pred
+
+    return outputs
   
   def forward(self, x, t=0):
     return self._forward(x, t)

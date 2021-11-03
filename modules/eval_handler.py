@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import torch
 import torch.nn.functional as F
-
+from modules import losses
 
 class SequentialEvalLoop:
   """Evaluation loop for sequential model."""
@@ -13,8 +13,9 @@ class SequentialEvalLoop:
     self.keep_logits = keep_logits
     self.keep_embeddings = keep_embeddings
     self.verbose = verbose
+    self._criterion = losses.categorical_cross_entropy
 
-  def __call__(self, net, loader, criterion, epoch_i, device):
+  def __call__(self, net, loader, epoch_i, device):
     net.eval()
 
     batch_losses = []
@@ -45,7 +46,10 @@ class SequentialEvalLoop:
 
       # Forward pass
       with torch.no_grad():
-        logits = net(data, t=0).cpu()
+        results = net(data, t=0)
+
+        # Unpack data
+        logits = results["logits"].cpu()
 
       if self.keep_logits:
         batch_logits.append(logits)
@@ -55,7 +59,7 @@ class SequentialEvalLoop:
         batch_embeddings.append(embedding.cpu())
 
       # Compute loss
-      loss = criterion(logits, y)
+      loss = self._criterion(logits, y)
       batch_losses.append(loss.item())
 
       # Predictions
@@ -86,8 +90,9 @@ class DistillationSequentialEvalLoop:
     self.keep_logits = keep_logits
     self.keep_embeddings = keep_embeddings
     self.verbose = verbose
+    self._criterion = losses.categorical_cross_entropy
 
-  def __call__(self, net, loader, criterion, epoch_i, device, teacher_net):
+  def __call__(self, net, loader, epoch_i, device, teacher_net):
     net.eval()
 
     batch_losses = []
@@ -113,19 +118,24 @@ class DistillationSequentialEvalLoop:
 
       # Determine device placement
       data = data.to(device, non_blocking=True)
-#       targets = targets.to(device, non_blocking=True)
       
       # Get teacher preds
       with torch.no_grad():
         for t in range(teacher_net.timesteps):
-          teacher_logits = teacher_net(data, t).cpu()
+          results = teacher_net(data, t)
+          
+          # Unpack data
+          teacher_logits = results["logits"].cpu()
+
       teacher_targets = F.softmax(teacher_logits, dim=1).argmax(dim=1).long()
       teacher_y = torch.eye(self.num_classes)[teacher_targets].long()
-#       teacher_y = teacher_y.to(device, non_blocking=True)
       
       # Forward pass
       with torch.no_grad():
-        logits = net(data, t=0).cpu()
+        results = net(data, t=0)
+          
+        # Unpack data
+        logits = results["logits"].cpu()
 
       if self.keep_logits:
         batch_logits.append(logits)
@@ -135,7 +145,7 @@ class DistillationSequentialEvalLoop:
         batch_embeddings.append(embedding.cpu())
 
       # Compute loss
-      loss = criterion(logits, targets, teacher_y)
+      loss = self._criterion(logits, targets, teacher_y)
       batch_losses.append(loss.item())
 
       # Predictions
@@ -168,8 +178,9 @@ class CascadedEvalLoop(object):
     self.keep_logits = keep_logits
     self.keep_embeddings = keep_embeddings
     self.verbose = verbose
+    self._criterion = losses.categorical_cross_entropy
 
-  def __call__(self, net, loader, criterion, epoch_i, device, **kwargs):
+  def __call__(self, net, loader, epoch_i, device, **kwargs):
     net.eval()
 
     batch_logits = []
@@ -212,7 +223,10 @@ class CascadedEvalLoop(object):
       for t in range(self.n_timesteps):
         # Forward pass
         with torch.no_grad():
-          logits_t = net(x, t).cpu()
+          results = net(x, t)
+          
+          # Unpack data
+          logits_t = results["logits"].cpu()
         
         if self.keep_logits:
           timestep_logits.append(logits_t)
@@ -222,7 +236,7 @@ class CascadedEvalLoop(object):
           timestep_embeddings.append(embedding)
 
         # Compute loss
-        loss_i = criterion(logits_t, y)
+        loss_i = self._criterion(logits_t, y)
 
         # Log loss
         timestep_losses[t] = loss_i.item()
@@ -273,15 +287,26 @@ class CascadedEvalLoop(object):
 class DistillationCascadedEvalLoop(object):
   """Evaluation loop for cascaded model."""
 
-  def __init__(self, n_timesteps, num_classes, 
-               keep_logits=False, keep_embeddings=False, verbose=False):
+  def __init__(
+      self, 
+      n_timesteps, 
+      num_classes, 
+      flags,
+      keep_logits=False, 
+      keep_embeddings=False, 
+      verbose=False
+    ):
     self.n_timesteps = n_timesteps
     self.num_classes = num_classes
     self.keep_logits = keep_logits
     self.keep_embeddings = keep_embeddings
     self.verbose = verbose
+    self._criterion = losses.DistillationLossHandler(
+      alpha=flags.distillation_alpha, 
+      temp=flags.distillation_temperature,
+    )
 
-  def __call__(self, net, loader, criterion, epoch_i, device, teacher_net):
+  def __call__(self, net, loader, epoch_i, device, teacher_net):
     net.eval()
 
     batch_logits = []
@@ -319,7 +344,8 @@ class DistillationCascadedEvalLoop(object):
       # Get teacher preds
       with torch.no_grad():
         for t in range(teacher_net.timesteps):
-          teacher_logits = teacher_net(x, t)
+          results = teacher_net(x, t)
+          teacher_logits = results["logits"]
       teacher_targets = F.softmax(teacher_logits, dim=1).argmax(dim=1)
       teacher_y = torch.eye(self.num_classes)[teacher_targets]
       teacher_y = teacher_y.to(device, non_blocking=True)
@@ -331,7 +357,8 @@ class DistillationCascadedEvalLoop(object):
       for t in range(self.n_timesteps):
         # Forward pass
         with torch.no_grad():
-          logits_t = net(x, t)
+          results = net(x, t)
+          logits_t = results["logits"]
         
         if self.keep_logits:
           timestep_logits.append(logits_t.cpu())
@@ -341,7 +368,7 @@ class DistillationCascadedEvalLoop(object):
           timestep_embeddings.append(embedding)
 
         # Compute loss
-        loss_i = criterion(logits_t, targets, teacher_y)
+        loss_i = self._criterion(logits_t, targets, teacher_y)
 
         # Log loss
         timestep_losses[t] = loss_i.item()
@@ -389,9 +416,15 @@ class DistillationCascadedEvalLoop(object):
     return batch_losses, batch_accs, logged_data
     
 
-def get_eval_loop(n_timesteps, num_classes, cascaded, flags,
-                  keep_logits=False, keep_embeddings=False, 
-                  verbose=False, tau_handler=None):
+def get_eval_loop(
+    n_timesteps, 
+    num_classes, 
+    cascaded, 
+    flags,
+    keep_logits=False, 
+    keep_embeddings=False, 
+    verbose=False
+  ):
   """Retrieve sequential or cascaded eval function."""
   if flags.distillation:
     if flags.train_mode == "baseline":
@@ -404,7 +437,8 @@ def get_eval_loop(n_timesteps, num_classes, cascaded, flags,
     elif flags.train_mode in ["cascaded", "cascaded_seq"]:
       eval_fxn = DistillationCascadedEvalLoop(
         n_timesteps, 
-        num_classes, 
+        num_classes,
+        flags,
         keep_logits, 
         keep_embeddings, 
         verbose,
