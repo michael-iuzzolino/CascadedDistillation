@@ -25,6 +25,7 @@ TRAINABLE_TEMP=true
 TEMP_FC_LR=0.00001
 TEACHER_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets_temp/resnet18_CIFAR100/experiments"
 TEACHER_EXP_DIR="td(0.25),parallel,lr_0.01,wd_0.001,seed_42"
+# TEACHER_EXP_DIR="teacher_td_0_25"
 TEACHER_DIR="$TEACHER_ROOT/$TEACHER_EXP_DIR"
 
 # Optimizer / LR Scheduling
