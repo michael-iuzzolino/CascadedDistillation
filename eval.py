@@ -318,10 +318,6 @@ def main(args):
         alpha_val = float(exp_path.split("alpha_")[1].split("++")[0])
       args.distillation_alpha = alpha_val
     
-    if args.distillation:
-      args.distillation_temperature = 1.0
-    # Ensure teacher_dir set if distillation mode enabled
-    
     if "cascaded_seq" in exp_path:
       continue
       

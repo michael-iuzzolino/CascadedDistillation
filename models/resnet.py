@@ -46,6 +46,7 @@ class ResNet(nn.Module):
     self._cascaded = kwargs.get("cascaded", False)
     self._cascaded_scheme = kwargs.get("cascaded_scheme", "parallel")
     self._trainable_temp = kwargs.get("trainable_temp")
+    self._init_temp = kwargs.get("init_temp")
     
     # Set multiple FCs flag
     self._multiple_fcs = kwargs.get("multiple_fcs", False)
@@ -98,12 +99,10 @@ class ResNet(nn.Module):
         block_expansion=block.expansion
       )
     
-    if self._trainable_temp:
-      self.temp_fc = InternalClassifier(
-        n_channels=filter_i, 
-        num_classes=1,
-        block_expansion=block.expansion
-      )
+    temp_requires_grad = self._trainable_temp
+    self.temperature = nn.Parameter(
+      torch.zeros(1, 1, dtype=torch.float32, requires_grad=temp_requires_grad) + self._init_temp
+    )
 
     # Weight initialization
     for m in self.modules():
@@ -245,9 +244,6 @@ class ResNet(nn.Module):
     outputs = {
       "logits": final_out
     }
-    if self._trainable_temp:
-      temp_pred = self.temp_fc(out)
-      outputs["temp_pred"] = temp_pred
 
     return outputs
   

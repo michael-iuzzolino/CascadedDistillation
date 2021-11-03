@@ -20,7 +20,6 @@ USE_ALL_ICS=false
 
 DISTILLATION=true
 DISTILLATION_ALPHAS=(0.5)  #  0.5 0.75 1.0)
-DISTILLATION_TEMP=1.0
 TRAINABLE_TEMP=true
 TEMP_FC_LR=0.00001
 TEACHER_ROOT="/hdd/mliuzzolino/cascaded_distillation_nets_temp/resnet18_CIFAR100/experiments"
@@ -58,7 +57,6 @@ do
           cmd+=( --dataset_name $DATASET_NAME )
           ${DISTILLATION} && cmd+=( --distillation )
           cmd+=( --distillation_alpha $DISTILLATION_ALPHA )
-          cmd+=( --distillation_temperature $DISTILLATION_TEMP )
           ${TRAINABLE_TEMP} && cmd+=( --trainable_temp )
           cmd+=( --temp_fc_lr $TEMP_FC_LR )
           cmd+=( --teacher_dir $TEACHER_DIR )

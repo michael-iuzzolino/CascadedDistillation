@@ -176,7 +176,6 @@ class DistillationCascadedTrainingScheme(object):
     
     batch_losses = []
     batch_accs = []
-    batch_temps = []
     for batch_i, (data, targets) in enumerate(loader):
       if self.flags.debug and batch_i > 1:
         break
@@ -198,7 +197,6 @@ class DistillationCascadedTrainingScheme(object):
       optimizer.zero_grad()
       
       predicted_logits = []
-      predicted_temps = []
       for t in range(self.n_timesteps):
         # Run forward pass
         results = net(data, t)
@@ -206,10 +204,6 @@ class DistillationCascadedTrainingScheme(object):
         # Unpack data
         logit_t = results["logits"]
         predicted_logits.append(logit_t)
-
-        # Check for temp prediction
-        if "temp_pred" in results:
-          predicted_temps.append(results["temp_pred"])
 
       # One-hot-ify targets and send to output device
       targets = targets.to(logit_t.device, non_blocking=True)
@@ -221,7 +215,7 @@ class DistillationCascadedTrainingScheme(object):
       """
       loss, target_losses, target_accs = self._criterion(
           predicted_logits=predicted_logits,
-          predicted_temps=predicted_temps,
+          temperature=net.temperature,
           teacher_y=teacher_y,
           y=y,
           targets=targets,
@@ -236,21 +230,20 @@ class DistillationCascadedTrainingScheme(object):
       # Update batch loss and compute average
       batch_losses.append(target_losses)
       batch_accs.append(target_accs)
-      if len(predicted_temps):
-        predicted_temps = torch.stack(predicted_temps)
-      batch_temps.append(predicted_temps)
       
       # Compute means
       mean_batch_loss = torch.stack(batch_losses).mean().item()
       mean_batch_acc = torch.stack(batch_accs).mean().item() * 100
-      mean_batch_temp = torch.stack(batch_temps).mean().item()
-      
+
+      net_temp = net.temperature
+      net_exp_temp = np.exp(net_temp)
+
       sys.stdout.write((
         f"\rTraining Batch {batch_i+1}/{len(loader)} -- "
         f"Batch Loss: {mean_batch_loss:0.6f} -- "
         f"Batch Acc: {mean_batch_acc:0.2f}% -- "
-        f"Batch temp: {mean_batch_temp:0.2f} -- "
-        f"Batch exp(temp): {np.exp(mean_batch_temp):0.2f}"
+        f"Batch temp: {net_temp:0.2f} -- "
+        f"Batch exp(temp): {net_exp_temp:0.2f}"
       ))
       sys.stdout.flush()
       

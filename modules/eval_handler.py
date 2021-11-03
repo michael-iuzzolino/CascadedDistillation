@@ -303,7 +303,6 @@ class DistillationCascadedEvalLoop(object):
     self.verbose = verbose
     self._criterion = losses.DistillationLossHandler(
       alpha=flags.distillation_alpha, 
-      temp=flags.distillation_temperature,
     )
 
   def __call__(self, net, loader, epoch_i, device, teacher_net):
@@ -368,7 +367,7 @@ class DistillationCascadedEvalLoop(object):
           timestep_embeddings.append(embedding)
 
         # Compute loss
-        loss_i = self._criterion(logits_t, targets, teacher_y)
+        loss_i = self._criterion(logits_t, targets, teacher_y, temp=net.temperature)
 
         # Log loss
         timestep_losses[t] = loss_i.item()

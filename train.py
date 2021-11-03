@@ -38,13 +38,14 @@ def setup_args():
                       help="Use distillation")
   parser.add_argument("--distillation_alpha", type=float, default=0.5,
                       help="Distillation alpha: 0.5 default")
-  parser.add_argument("--distillation_temperature", type=float, default=1.0,
-                      help="Distillation temp: 1.0 default")
   parser.add_argument("--teacher_dir", type=str, 
                       default="",
                       help="Teacher network root")
   parser.add_argument("--trainable_temp", action="store_true", default=False,
                       help="Trainable temperature scaling")
+  parser.add_argument("--init_temp", type=float, default=1.0,
+                      help="Init temp value: 1.0 default")
+                      
   parser.add_argument("--temp_fc_lr", type=float, default=0.00001,
                       help="Temp param learning rate: 0.00001 default")
   
@@ -329,6 +330,7 @@ def setup_model(data_handler, device, save_root, args):
       "tdl_mode": args.tdl_mode,
       "noise_var": args.noise_var,
       "trainable_temp": args.trainable_temp,
+      "init_temp": args.init_temp,
       "bn_opts": {
           "temporal_affine": args.bn_time_affine,
           "temporal_stats": args.bn_time_stats,
