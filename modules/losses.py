@@ -19,10 +19,11 @@ class DistillationLossHandler(object):
     return loss
   
 
-def categorical_cross_entropy(pred_logits, y_true_softmax):
+def categorical_cross_entropy(pred_logits, y_true_softmax, temp=1.0):
   """Categorical cross entropy."""
   log_softmax_pred = nn.LogSoftmax(dim=1)(pred_logits)
   soft_targets = y_true_softmax.detach().clone()  # Stop gradient
+  soft_targets = soft_targets * temp * temp
   cce_loss = -(soft_targets * log_softmax_pred).sum(dim=1).mean()
   return cce_loss
 
@@ -87,8 +88,8 @@ class TD_Loss(object):
     return loss, timestep_losses, timestep_accs
   
   
-def compute_distillation_loss(target, teacher, alpha, temperature):
-  teacher_term = teacher * (alpha * temperature * temperature)
+def compute_distillation_loss(target, teacher, alpha):
+  teacher_term = teacher * alpha
   target_term = (1 - alpha) * target
   loss = teacher_term + target_term
   return loss
@@ -99,7 +100,7 @@ class Distillation_TD_Loss(object):
     self.n_timesteps = n_timesteps
     self.flags = flags
   
-  def __call__(self, criterion, predicted_logits, predicted_temps, teacher_y, y, targets):
+  def __call__(self, predicted_logits, predicted_temps, teacher_y, y, targets):
     loss = 0
     timestep_losses = torch.zeros(self.n_timesteps)
     timestep_accs = torch.zeros(self.n_timesteps)
@@ -133,15 +134,20 @@ class Distillation_TD_Loss(object):
       teacher_softmax_j = teacher_softmax_j / temp_scale
       
       # Compute target and teacher losses
-      target_loss_i = criterion(pred_logits=logit_i, y_true_softmax=target_softmax_j)
-      teacher_loss_i = criterion(pred_logits=logit_i, y_true_softmax=teacher_softmax_j)
-      
+      target_loss_i = categorical_cross_entropy(
+        pred_logits=logit_i, 
+        y_true_softmax=target_softmax_j
+      )
+      teacher_loss_i = categorical_cross_entropy(
+        pred_logits=logit_i, 
+        y_true_softmax=teacher_softmax_j, 
+        temp=temp_scale
+      )
       # Compute distillation loss
       loss_i = compute_distillation_loss(
           target_loss_i, 
           teacher_loss_i, 
           alpha=self.flags.distillation_alpha, 
-          temperature=temp_scale,
       )
   
       # Aggregate loss

@@ -221,7 +221,6 @@ class DistillationCascadedTrainingScheme(object):
       Compute distillation loss within TD loss computation
       """
       loss, target_losses, target_accs = self._criterion(
-          criterion=losses.categorical_cross_entropy,
           predicted_logits=predicted_logits,
           predicted_temps=predicted_temps,
           teacher_y=teacher_y,
