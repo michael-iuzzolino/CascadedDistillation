@@ -128,7 +128,7 @@ class Distillation_TD_Loss(object):
       # Temp scale
       if len(predicted_temps):
         temp_i = predicted_temps[i]
-        temp_scale = torch.exp(temp_i)
+        temp_scale = temp_i  # torch.exp(temp_i)
       else:
         temp_scale = self.flags.distillation_temperature
       logit_i = logit_i / temp_scale
