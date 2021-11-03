@@ -126,8 +126,9 @@ class Distillation_TD_Loss(object):
       teacher_softmax_j = teacher_term_1 + teacher_term_2
       
       # Temp scale
-      if len(predicted_temps) and predicted_temps[0] is not None:
-        temp_scale = torch.exp(predicted_temps[i])
+      if len(predicted_temps):
+        temp_i = predicted_temps[i]
+        temp_scale = torch.exp(temp_i)
       else:
         temp_scale = self.flags.distillation_temperature
       logit_i = logit_i / temp_scale

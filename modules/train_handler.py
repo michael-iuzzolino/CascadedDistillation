@@ -210,8 +210,6 @@ class DistillationCascadedTrainingScheme(object):
         # Check for temp prediction
         if "temp_pred" in results:
           predicted_temps.append(results["temp_pred"])
-        else:
-          predicted_temps.append(None)
 
       # One-hot-ify targets and send to output device
       targets = targets.to(logit_t.device, non_blocking=True)
@@ -238,6 +236,8 @@ class DistillationCascadedTrainingScheme(object):
       # Update batch loss and compute average
       batch_losses.append(target_losses)
       batch_accs.append(target_accs)
+      if len(predicted_temps):
+        predicted_temps = torch.stack(predicted_temps)
       batch_temps.append(predicted_temps)
       
       # Compute means
@@ -249,7 +249,8 @@ class DistillationCascadedTrainingScheme(object):
         f"\rTraining Batch {batch_i+1}/{len(loader)} -- "
         f"Batch Loss: {mean_batch_loss:0.6f} -- "
         f"Batch Acc: {mean_batch_acc:0.2f}% -- "
-        f"Batch temp: {mean_batch_temp:0.2f}"
+        f"Batch temp: {mean_batch_temp:0.2f} -- "
+        f"Batch exp(temp): {np.exp(mean_batch_temp):0.2f}"
       ))
       sys.stdout.flush()
       

@@ -45,6 +45,8 @@ def setup_args():
                       help="Teacher network root")
   parser.add_argument("--trainable_temp", action="store_true", default=False,
                       help="Trainable temperature scaling")
+  parser.add_argument("--temp_fc_lr", type=float, default=0.00001,
+                      help="Temp param learning rate: 0.00001 default")
   
   # Dataset
   parser.add_argument("--dataset_root", type=str, required=True,
@@ -491,9 +493,17 @@ def main(args):
   opts = condition_model(save_root, args)
   
   # Init optimizer
-  optimizer = opts["optimizer_init_op"](
-    net.parameters(), **opts["optimizer_dict"]
-  )
+  if args.trainable_temp and "temp_fc" in list(dict(net.named_parameters()).keys()):
+    base_params = [v for k, v in net.named_parameters() if not k.startswith("temp_fc")]
+    temp_params = [v for k, v in net.named_parameters() if k.startswith("temp_fc")]
+    optimizer = opts["optimizer_init_op"]([
+      {"params": base_params, **opts["optimizer_dict"]},
+      {"params": temp_params, "lr": args.temp_fc_lr},
+    ])
+  else:
+    optimizer = opts["optimizer_init_op"](
+      net.parameters(), **opts["optimizer_dict"]
+    )
 
   # Scheduler
   lr_scheduler = optim.lr_scheduler.MultiStepLR(
