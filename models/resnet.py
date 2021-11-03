@@ -99,10 +99,9 @@ class ResNet(nn.Module):
         block_expansion=block.expansion
       )
     
-    temp_requires_grad = self._trainable_temp
-    self.temperature = nn.Parameter(
-      torch.zeros(1, 1, dtype=torch.float32, requires_grad=temp_requires_grad) + self._init_temp
-    )
+    if self._init_temp:
+      temp_base = torch.zeros(1, 1, dtype=torch.float32) + self._init_temp
+      self.temperature = nn.Parameter(temp_base)
 
     # Weight initialization
     for m in self.modules():

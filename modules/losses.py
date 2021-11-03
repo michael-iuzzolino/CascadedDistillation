@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class DistillationLossHandler(object):
-  def __init__(self, alpha, temp):
+  def __init__(self, alpha):
     self._alpha = alpha
     self._kl = nn.KLDivLoss()
   

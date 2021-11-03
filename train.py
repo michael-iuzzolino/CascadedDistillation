@@ -496,8 +496,8 @@ def main(args):
   
   # Init optimizer
   if args.trainable_temp:
-    base_params = [v for k, v in net.named_parameters() if not k.startswith("temp_fc")]
-    temp_params = [v for k, v in net.named_parameters() if k.startswith("temp_fc")]
+    base_params = [v for k, v in net.named_parameters() if k != "temperature"]
+    temp_params = [v for k, v in net.named_parameters() if k == "temperature"]
     optimizer = opts["optimizer_init_op"]([
       {"params": base_params, **opts["optimizer_dict"]},
       {"params": temp_params, "lr": args.temp_fc_lr},

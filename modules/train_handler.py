@@ -235,7 +235,7 @@ class DistillationCascadedTrainingScheme(object):
       mean_batch_loss = torch.stack(batch_losses).mean().item()
       mean_batch_acc = torch.stack(batch_accs).mean().item() * 100
 
-      net_temp = net.temperature
+      net_temp = net.temperature.item()
       net_exp_temp = np.exp(net_temp)
 
       sys.stdout.write((
