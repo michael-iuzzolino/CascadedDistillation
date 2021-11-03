@@ -493,7 +493,7 @@ def main(args):
   opts = condition_model(save_root, args)
   
   # Init optimizer
-  if args.trainable_temp and "temp_fc" in list(dict(net.named_parameters()).keys()):
+  if args.trainable_temp:
     base_params = [v for k, v in net.named_parameters() if not k.startswith("temp_fc")]
     temp_params = [v for k, v in net.named_parameters() if k.startswith("temp_fc")]
     optimizer = opts["optimizer_init_op"]([

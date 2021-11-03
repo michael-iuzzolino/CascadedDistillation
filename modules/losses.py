@@ -128,8 +128,9 @@ class Distillation_TD_Loss(object):
       # Temp scale
       if len(predicted_temps):
         temp_i = predicted_temps[i]
-        temp_scale = temp_i  # torch.exp(temp_i)
+        temp_scale = torch.exp(temp_i)
       else:
+        temp_i = None
         temp_scale = self.flags.distillation_temperature
       logit_i = logit_i / temp_scale
       teacher_softmax_j = teacher_softmax_j / temp_scale
@@ -174,6 +175,6 @@ class Distillation_TD_Loss(object):
     # Normalize loss
     if self.flags.normalize_loss:
       loss = loss / float(self.n_timesteps)
-    
+
     return loss, timestep_losses, timestep_accs
   
